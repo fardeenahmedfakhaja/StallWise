@@ -170,73 +170,78 @@ class RestaurantOrderSystem {
     
     // Load business data from Firestore
     async loadBusinessData() {
-        try {
-            // Load menu
-            const menuSnapshot = await this.db.collection('businesses')
-                .doc(this.businessId)
-                .collection('menu')
-                .get();
-            
-            if (!menuSnapshot.empty) {
-                this.menu = menuSnapshot.docs.map(doc => ({ 
-                    id: doc.id, 
-                    ...doc.data(),
-                    cost: doc.data().cost || 0
-                }));
-            }
-            
-            // Load categories
-            const businessDoc = await this.db.collection('businesses').doc(this.businessId).get();
-            if (businessDoc.exists) {
-                const businessData = businessDoc.data();
-                this.categories = businessData.categories || this.getDefaultCategories();
-                this.nextOrderId = businessData.nextOrderId || 1001;
-                this.updateNextOrderNumber();
-            }
-            
-            // Load ongoing orders
-            const ordersSnapshot = await this.db.collection('businesses')
-                .doc(this.businessId)
-                .collection('orders')
-                .where('status', 'in', ['preparing', 'ready'])
-                .orderBy('orderTime', 'desc')
-                .get();
-            
-            this.orders = ordersSnapshot.docs.map(doc => ({ 
+    try {
+        // Load menu
+        const menuSnapshot = await this.db.collection('businesses')
+            .doc(this.businessId)
+            .collection('menu')
+            .get();
+        
+        if (!menuSnapshot.empty) {
+            this.menu = menuSnapshot.docs.map(doc => ({ 
                 id: doc.id, 
                 ...doc.data(),
-                orderNumber: doc.data().orderNumber || 0
+                cost: doc.data().cost || 0
             }));
-            
-            // Load completed orders
-            const completedSnapshot = await this.db.collection('businesses')
-                .doc(this.businessId)
-                .collection('orders')
-                .where('status', '==', 'completed')
-                .orderBy('completedTime', 'desc')
-                .limit(50)
-                .get();
-            
-            this.completedOrders = completedSnapshot.docs.map(doc => ({ 
-                id: doc.id, 
-                ...doc.data(),
-                orderNumber: doc.data().orderNumber || 0
-            }));
-            
-            // Update UI
-            this.renderMenu();
-            this.renderOngoingOrders();
-            this.renderCompletedOrders();
-            this.renderMenuManagement();
-            this.updateSummary();
-            this.updateStats();
-            this.updateBadges();
-            
-        } catch (error) {
-            console.error('Error loading business data:', error);
-            this.showNotification('Error loading business data', 'error');
         }
+        
+        // Load categories
+        const businessDoc = await this.db.collection('businesses').doc(this.businessId).get();
+        if (businessDoc.exists) {
+            const businessData = businessDoc.data();
+            this.categories = businessData.categories || this.getDefaultCategories();
+            this.nextOrderId = businessData.nextOrderId || 1001;
+            this.updateNextOrderNumber();
+        }
+        
+        // Load ongoing orders - SIMPLIFIED QUERY to avoid composite index
+        // Instead of using 'in' operator with orderBy, we'll get all orders and filter
+        const ordersSnapshot = await this.db.collection('businesses')
+            .doc(this.businessId)
+            .collection('orders')
+            .get();
+        
+        // Filter ongoing orders locally
+        this.orders = ordersSnapshot.docs
+            .map(doc => ({ 
+                id: doc.id, 
+                ...doc.data(),
+                orderNumber: doc.data().orderNumber || 0
+            }))
+            .filter(order => order.status === 'preparing' || order.status === 'ready')
+            .sort((a, b) => new Date(b.orderTime) - new Date(a.orderTime));
+        
+        // Load completed orders - SIMPLIFIED QUERY
+        const completedSnapshot = await this.db.collection('businesses')
+            .doc(this.businessId)
+            .collection('orders')
+            .get();
+        
+        // Filter completed orders locally
+        this.completedOrders = completedSnapshot.docs
+            .map(doc => ({ 
+                id: doc.id, 
+                ...doc.data(),
+                orderNumber: doc.data().orderNumber || 0
+            }))
+            .filter(order => order.status === 'completed')
+            .sort((a, b) => new Date(b.completedTime || b.orderTime) - new Date(a.completedTime || a.orderTime))
+            .slice(0, 50); // Limit to 50 most recent
+        
+        // Update UI
+        this.renderMenu();
+        this.renderOngoingOrders();
+        this.renderCompletedOrders();
+        this.renderMenuManagement();
+        this.updateSummary();
+        this.updateStats();
+        this.updateBadges();
+        
+    } catch (error) {
+        console.error('Error loading business data:', error);
+        this.showNotification('Error loading business data: ' + error.message, 'error');
     }
+}
     
     // Google Sign In
     async signInWithGoogle() {

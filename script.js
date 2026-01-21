@@ -1796,3 +1796,5 @@ document.addEventListener('DOMContentLoaded', () => {
     restaurantSystem = new RestaurantOrderSystem();
     
     // Make system
+        window.restaurantSystem = restaurantSystem;
+}); // <--

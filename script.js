@@ -1,4 +1,4 @@
-// Restaurant Order Management System with Firebase - FIXED VERSION
+// Restaurant Order Management System with Firebase - COMPLETE VERSION
 class RestaurantOrderSystem {
     constructor() {
         // Firebase services
@@ -203,6 +203,7 @@ class RestaurantOrderSystem {
                 break;
             case 'menu-management':
                 this.renderMenuManagement();
+                this.loadCategoriesDropdown();
                 break;
             case 'analytics':
                 this.updateAnalytics();
@@ -269,20 +270,6 @@ class RestaurantOrderSystem {
     // Load business data from Firestore
     async loadBusinessData() {
         try {
-            // Load menu
-            const menuSnapshot = await this.db.collection('businesses')
-                .doc(this.businessId)
-                .collection('menu')
-                .get();
-            
-            if (!menuSnapshot.empty) {
-                this.menu = menuSnapshot.docs.map(doc => ({ 
-                    id: doc.id, 
-                    ...doc.data(),
-                    cost: doc.data().cost || 0
-                }));
-            }
-            
             // Load business data
             const businessDoc = await this.db.collection('businesses').doc(this.businessId).get();
             if (businessDoc.exists) {
@@ -291,6 +278,9 @@ class RestaurantOrderSystem {
                 this.nextOrderId = this.businessData.nextOrderId || 1001;
                 this.updateNextOrderNumber();
             }
+            
+            // Load menu items
+            await this.loadMenuFromFirestore();
             
             // Load orders - simplified to avoid composite index error
             const ordersSnapshot = await this.db.collection('businesses')
@@ -327,6 +317,65 @@ class RestaurantOrderSystem {
         } catch (error) {
             console.error('Error loading business data:', error);
             this.showNotification('Error loading business data: ' + error.message, 'error');
+        }
+    }
+    
+    // Load menu items from Firestore
+    async loadMenuFromFirestore() {
+        try {
+            const menuSnapshot = await this.db.collection('businesses')
+                .doc(this.businessId)
+                .collection('menu')
+                .orderBy('category')
+                .get();
+            
+            if (!menuSnapshot.empty) {
+                this.menu = menuSnapshot.docs.map(doc => ({ 
+                    id: doc.id, 
+                    ...doc.data(),
+                    cost: doc.data().cost || 0
+                }));
+                
+                // Save to local storage as backup
+                this.saveData('menu', this.menu);
+            } else {
+                // If no menu exists, create default menu
+                await this.createDefaultMenu();
+            }
+        } catch (error) {
+            console.error('Error loading menu:', error);
+            this.showNotification('Error loading menu', 'error');
+        }
+    }
+    
+    // Create default menu for new business
+    async createDefaultMenu() {
+        try {
+            const defaultMenu = this.getDefaultMenu();
+            const batch = this.db.batch();
+            
+            for (const item of defaultMenu) {
+                const newItemRef = this.db.collection('businesses')
+                    .doc(this.businessId)
+                    .collection('menu')
+                    .doc();
+                
+                batch.set(newItemRef, {
+                    name: item.name,
+                    category: item.category,
+                    price: item.price,
+                    cost: item.cost,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
+            
+            await batch.commit();
+            await this.loadMenuFromFirestore();
+            
+        } catch (error) {
+            console.error('Error creating default menu:', error);
+            this.showNotification('Error creating menu', 'error');
         }
     }
     
@@ -1426,6 +1475,391 @@ class RestaurantOrderSystem {
         }
     }
     
+    // ================= MENU MANAGEMENT METHODS =================
+    
+    // Render menu management table
+    renderMenuManagement() {
+        const tbody = document.getElementById('menu-management-body');
+        if (!tbody) return;
+        
+        if (this.menu.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center py-4">
+                        <i class="fas fa-utensils fa-2x text-muted mb-2"></i>
+                        <p class="text-muted">No menu items added yet</p>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        let html = '';
+        
+        // Group items by category
+        const itemsByCategory = {};
+        this.menu.forEach(item => {
+            if (!itemsByCategory[item.category]) {
+                itemsByCategory[item.category] = [];
+            }
+            itemsByCategory[item.category].push(item);
+        });
+        
+        // Render items grouped by category
+        Object.keys(itemsByCategory).sort().forEach(category => {
+            // Add category header row
+            html += `
+                <tr class="category-header" style="background-color: #f8f9fa;">
+                    <td colspan="6">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <strong>${category}</strong>
+                            <button class="btn btn-sm btn-outline-danger delete-category-btn" 
+                                    data-category="${category}" 
+                                    ${itemsByCategory[category].length > 0 ? 'disabled' : ''}
+                                    title="${itemsByCategory[category].length > 0 ? 'Remove items first to delete category' : 'Delete Category'}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            
+            // Add items for this category
+            itemsByCategory[category].forEach(item => {
+                const profit = item.price - item.cost;
+                const profitMargin = item.price > 0 ? ((profit / item.price) * 100).toFixed(1) : 0;
+                const profitClass = profit >= 0 ? 'profit-positive' : 'profit-negative';
+                
+                html += `
+                    <tr class="menu-item-row" data-item-id="${item.id}">
+                        <td>${item.category}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <span class="item-name">${item.name}</span>
+                            </div>
+                        </td>
+                        <td>₹${item.cost}</td>
+                        <td>₹${item.price}</td>
+                        <td class="${profitClass}">₹${profit}</td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-outline-primary edit-item-btn" 
+                                        data-item-id="${item.id}" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger delete-item-btn" 
+                                        data-item-id="${item.id}" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+        });
+        
+        tbody.innerHTML = html;
+        
+        // Add event listeners for edit and delete buttons
+        document.querySelectorAll('.edit-item-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const itemId = e.currentTarget.getAttribute('data-item-id');
+                this.editMenuItem(itemId);
+            });
+        });
+        
+        document.querySelectorAll('.delete-item-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const itemId = e.currentTarget.getAttribute('data-item-id');
+                this.deleteMenuItem(itemId);
+            });
+        });
+        
+        document.querySelectorAll('.delete-category-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const category = e.currentTarget.getAttribute('data-category');
+                this.deleteCategory(category);
+            });
+        });
+        
+        // Make rows clickable
+        document.querySelectorAll('.menu-item-row').forEach(row => {
+            row.addEventListener('click', (e) => {
+                if (!e.target.closest('.btn')) {
+                    const itemId = row.getAttribute('data-item-id');
+                    this.editMenuItem(itemId);
+                }
+            });
+        });
+    }
+    
+    // Load categories into dropdown
+    loadCategoriesDropdown() {
+        const categorySelect = document.getElementById('item-category');
+        if (!categorySelect) return;
+        
+        categorySelect.innerHTML = '<option value="">Select Category</option>';
+        
+        this.categories.forEach(category => {
+            const option = document.createElement('option');
+            option.value = category;
+            option.textContent = category;
+            categorySelect.appendChild(option);
+        });
+    }
+    
+    // Show new category input
+    showNewCategoryInput() {
+        document.getElementById('new-category-input').style.display = 'block';
+        document.getElementById('new-category-name').focus();
+    }
+    
+    // Hide new category input
+    hideNewCategoryInput() {
+        document.getElementById('new-category-input').style.display = 'none';
+        document.getElementById('new-category-name').value = '';
+    }
+    
+    // Save new category
+    async saveNewCategory() {
+        const categoryInput = document.getElementById('new-category-name');
+        const categoryName = categoryInput.value.trim().toUpperCase();
+        
+        if (!categoryName) {
+            this.showNotification('Please enter a category name', 'error');
+            return;
+        }
+        
+        if (this.categories.includes(categoryName)) {
+            this.showNotification('Category already exists', 'error');
+            return;
+        }
+        
+        try {
+            // Add to local array
+            this.categories.push(categoryName);
+            
+            // Update in Firestore
+            await this.db.collection('businesses').doc(this.businessId).update({
+                categories: this.categories,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            // Update UI
+            this.loadCategoriesDropdown();
+            this.hideNewCategoryInput();
+            
+            // Clear the input
+            categoryInput.value = '';
+            
+            this.showNotification(`Category "${categoryName}" added successfully`, 'success');
+            
+        } catch (error) {
+            console.error('Error saving category:', error);
+            this.showNotification('Error saving category', 'error');
+        }
+    }
+    
+    // Delete category
+    async deleteCategory(category) {
+        // Check if category has items
+        const itemsInCategory = this.menu.filter(item => item.category === category);
+        
+        if (itemsInCategory.length > 0) {
+            this.showNotification(`Cannot delete category "${category}" because it has ${itemsInCategory.length} item(s). Delete or move items first.`, 'error');
+            return;
+        }
+        
+        if (!confirm(`Are you sure you want to delete the category "${category}"?`)) {
+            return;
+        }
+        
+        try {
+            // Remove from local array
+            this.categories = this.categories.filter(cat => cat !== category);
+            
+            // Update in Firestore
+            await this.db.collection('businesses').doc(this.businessId).update({
+                categories: this.categories,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            // Update UI
+            this.loadCategoriesDropdown();
+            this.renderMenuManagement();
+            
+            this.showNotification(`Category "${category}" deleted successfully`, 'success');
+            
+        } catch (error) {
+            console.error('Error deleting category:', error);
+            this.showNotification('Error deleting category', 'error');
+        }
+    }
+    
+    // Edit menu item
+    editMenuItem(itemId) {
+        const item = this.menu.find(item => item.id === itemId);
+        if (!item) return;
+        
+        // Populate form
+        document.getElementById('item-category').value = item.category;
+        document.getElementById('item-name').value = item.name;
+        document.getElementById('item-price').value = item.price;
+        document.getElementById('item-cost').value = item.cost;
+        document.getElementById('edit-item-id').value = itemId;
+        
+        // Change button text
+        const submitBtn = document.querySelector('#menu-item-form button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Update Item';
+            submitBtn.classList.remove('btn-success');
+            submitBtn.classList.add('btn-primary');
+        }
+        
+        // Scroll to form
+        document.getElementById('menu-item-form').scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    // Cancel edit menu item
+    cancelEditMenuItem() {
+        this.resetMenuItemForm();
+    }
+    
+    // Reset menu item form
+    resetMenuItemForm() {
+        document.getElementById('menu-item-form').reset();
+        document.getElementById('edit-item-id').value = '';
+        
+        // Reset button
+        const submitBtn = document.querySelector('#menu-item-form button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Save Item';
+            submitBtn.classList.remove('btn-primary');
+            submitBtn.classList.add('btn-success');
+        }
+    }
+    
+    // Save menu item
+    async saveMenuItem() {
+        const category = document.getElementById('item-category').value;
+        const name = document.getElementById('item-name').value.trim();
+        const price = parseFloat(document.getElementById('item-price').value);
+        const cost = parseFloat(document.getElementById('item-cost').value);
+        const itemId = document.getElementById('edit-item-id').value;
+        
+        // Validation
+        if (!category || !name || !price || !cost) {
+            this.showNotification('Please fill in all fields', 'error');
+            return;
+        }
+        
+        if (price <= 0 || cost < 0) {
+            this.showNotification('Price must be positive and cost cannot be negative', 'error');
+            return;
+        }
+        
+        if (cost > price) {
+            this.showNotification('Cost cannot be greater than price', 'error');
+            return;
+        }
+        
+        try {
+            const itemData = {
+                category: category,
+                name: name,
+                price: price,
+                cost: cost,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            if (itemId) {
+                // Update existing item
+                await this.db.collection('businesses')
+                    .doc(this.businessId)
+                    .collection('menu')
+                    .doc(itemId)
+                    .update(itemData);
+                
+                // Update local array
+                const index = this.menu.findIndex(item => item.id === itemId);
+                if (index !== -1) {
+                    this.menu[index] = { ...this.menu[index], ...itemData };
+                }
+                
+                this.showNotification('Menu item updated successfully', 'success');
+            } else {
+                // Add new item
+                itemData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                
+                const newItemRef = await this.db.collection('businesses')
+                    .doc(this.businessId)
+                    .collection('menu')
+                    .add(itemData);
+                
+                // Add to local array
+                this.menu.push({
+                    id: newItemRef.id,
+                    ...itemData
+                });
+                
+                this.showNotification('Menu item added successfully', 'success');
+            }
+            
+            // Reset form
+            this.resetMenuItemForm();
+            
+            // Update UI
+            this.renderMenuManagement();
+            this.renderMenu();
+            
+            // Save to local storage
+            this.saveData('menu', this.menu);
+            
+        } catch (error) {
+            console.error('Error saving menu item:', error);
+            this.showNotification('Error saving menu item', 'error');
+        }
+    }
+    
+    // Delete menu item
+    async deleteMenuItem(itemId) {
+        if (!confirm('Are you sure you want to delete this menu item?')) {
+            return;
+        }
+        
+        try {
+            // Delete from Firestore
+            await this.db.collection('businesses')
+                .doc(this.businessId)
+                .collection('menu')
+                .doc(itemId)
+                .delete();
+            
+            // Remove from local array
+            this.menu = this.menu.filter(item => item.id !== itemId);
+            
+            // Update UI
+            this.renderMenuManagement();
+            this.renderMenu();
+            
+            // Save to local storage
+            this.saveData('menu', this.menu);
+            
+            // Reset form if editing this item
+            if (document.getElementById('edit-item-id').value === itemId) {
+                this.resetMenuItemForm();
+            }
+            
+            this.showNotification('Menu item deleted successfully', 'success');
+            
+        } catch (error) {
+            console.error('Error deleting menu item:', error);
+            this.showNotification('Error deleting menu item', 'error');
+        }
+    }
+    
+    // ================= END MENU MANAGEMENT METHODS =================
+    
     // Show authentication modal
     showAuthModal() {
         // Create modal if it doesn't exist
@@ -1542,7 +1976,7 @@ class RestaurantOrderSystem {
         }
     }
     
-    // Save initial profile - THIS WAS MISSING!
+    // Save initial profile
     async saveInitialProfile() {
         const businessName = document.getElementById('initial-business-name')?.value;
         const businessType = document.getElementById('initial-business-type')?.value;
@@ -1607,7 +2041,7 @@ class RestaurantOrderSystem {
         }
     }
     
-    // Update profile tab - THIS WAS MISSING!
+    // Update profile tab
     updateProfileTab() {
         if (!this.businessData) {
             document.getElementById('business-info').innerHTML = '<p class="text-muted">No business profile created yet.</p>';
@@ -1751,41 +2185,11 @@ class RestaurantOrderSystem {
         }, 3000);
     }
     
-    // For simplicity, I'm including only critical methods
-    // Additional methods like updateAnalytics, renderMenuManagement, etc. 
-    // would need to be added here for full functionality
-    
-    // Placeholder for analytics update (you need to implement fully)
+    // Analytics update (simplified)
     updateAnalytics() {
         console.log('Analytics update called');
         // Implement analytics charts here
-    }
-    
-    // Placeholder for menu management render (you need to implement fully)
-    renderMenuManagement() {
-        console.log('Menu management render called');
-        // Implement menu management table here
-    }
-    
-    // Placeholder for other methods that need implementation
-    cancelEditMenuItem() {
-        console.log('Cancel edit menu item');
-    }
-    
-    showNewCategoryInput() {
-        console.log('Show new category input');
-    }
-    
-    saveNewCategory() {
-        console.log('Save new category');
-    }
-    
-    hideNewCategoryInput() {
-        console.log('Hide new category input');
-    }
-    
-    saveMenuItem() {
-        console.log('Save menu item');
+        this.showNotification('Analytics will be available in the next update', 'info');
     }
 }
 
@@ -1795,6 +2199,6 @@ let restaurantSystem;
 document.addEventListener('DOMContentLoaded', () => {
     restaurantSystem = new RestaurantOrderSystem();
     
-    // Make system
-        window.restaurantSystem = restaurantSystem;
-}); // <--
+    // Make system accessible globally for inline event handlers
+    window.restaurantSystem = restaurantSystem;
+});

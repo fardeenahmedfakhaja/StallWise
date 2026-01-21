@@ -95,11 +95,11 @@ body {
 /* Tab Content */
 .tab-content {
     display: none;
-    animation: fadeIn 0.3s;
 }
 
 .tab-content.active {
     display: block;
+    animation: fadeIn 0.3s;
 }
 
 @keyframes fadeIn {

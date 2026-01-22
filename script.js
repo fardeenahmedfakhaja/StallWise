@@ -544,11 +544,7 @@ class RestaurantOrderSystem {
         const placeOrderBtn = document.getElementById('place-order-btn');
         placeOrderBtn?.addEventListener('click', () => this.placeOrder(placeOrderBtn));
         
-        // Quick action buttons
-        document.getElementById('quick-drinks')?.addEventListener('click', () => this.showCategory('DRINKS'));
-        document.getElementById('quick-desserts')?.addEventListener('click', () => this.showCategory('DESSERTS'));
-        document.getElementById('quick-appetizers')?.addEventListener('click', () => this.showCategory('APPETIZERS'));
-        document.getElementById('quick-wraps')?.addEventListener('click', () => this.showCategory('WRAPS'));
+        // Quick action buttons REMOVED - Only dynamic favorite categories
         
         // Refresh orders with loading
         const refreshOrdersBtn = document.getElementById('refresh-orders-btn');
@@ -629,23 +625,25 @@ class RestaurantOrderSystem {
         const quickActionsContainer = document.querySelector('#quick-actions-container');
         if (!quickActionsContainer) return;
         
-        // Keep only the first 4 default buttons
-        const defaultButtons = ['quick-drinks', 'quick-desserts', 'quick-appetizers', 'quick-wraps'];
-        const existingButtons = quickActionsContainer.querySelectorAll('button');
-        
-        existingButtons.forEach(button => {
-            if (!defaultButtons.includes(button.id)) {
-                button.parentElement.remove();
-            }
-        });
+        // Clear all existing content
+        quickActionsContainer.innerHTML = '';
         
         // Get favorite categories
         const favoriteCategories = this.categories.filter(cat => cat.favorite);
         
+        if (favoriteCategories.length === 0) {
+            quickActionsContainer.innerHTML = `
+                <div class="col-12 text-center py-3">
+                    <p class="text-muted small">Mark categories as favorites in Menu Management</p>
+                </div>
+            `;
+            return;
+        }
+        
         // Add favorite categories as quick actions
         favoriteCategories.forEach((category, index) => {
-            // Skip if we already have 4 buttons (including defaults)
-            if (index >= 4) return;
+            // Limit to 6 quick actions
+            if (index >= 6) return;
             
             const col = document.createElement('div');
             col.className = 'col-6';
@@ -660,7 +658,6 @@ class RestaurantOrderSystem {
                 </button>
             `;
             
-            // Insert after default buttons
             quickActionsContainer.appendChild(col);
             
             // Add event listener
@@ -1010,7 +1007,7 @@ class RestaurantOrderSystem {
         
         container.innerHTML = html || '<div class="text-muted small">No items selected</div>';
         
-        // Update totals in summary
+        // Update totals in summary - FIX: Always show totals even when no items
         const summaryTotal = document.getElementById('summary-total');
         if (summaryTotal) {
             summaryTotal.innerHTML = `
@@ -1171,7 +1168,7 @@ class RestaurantOrderSystem {
         }, 'Placing order...', button);
     }
     
-    // Clear current order
+    // Clear current order - FIXED: Now properly resets summary
     clearCurrentOrder() {
         this.currentOrder = {
             items: [],
@@ -1202,9 +1199,43 @@ class RestaurantOrderSystem {
             if (menuCard) menuCard.classList.remove('selected');
         });
         
-        // Update UI
+        // Update UI - FIX: Call both update methods
         this.updateSelectedItemsTable();
         this.updateSummary();
+        
+        // Clear the summary totals explicitly
+        const summaryTotal = document.getElementById('summary-total');
+        if (summaryTotal) {
+            summaryTotal.innerHTML = `
+                <div class="d-flex justify-content-between mb-1">
+                    <span>Subtotal:</span>
+                    <span>₹0.00</span>
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                    <span>Tax:</span>
+                    <span>₹0.00</span>
+                </div>
+                <div class="d-flex justify-content-between mt-2 total-row">
+                    <strong>Total:</strong>
+                    <strong>₹0.00</strong>
+                </div>
+            `;
+        }
+        
+        // Clear summary items
+        const summaryItems = document.getElementById('summary-items');
+        if (summaryItems) {
+            summaryItems.innerHTML = '<div class="text-muted small">No items selected</div>';
+        }
+        
+        // Reset summary info
+        const summaryCustomer = document.getElementById('summary-customer');
+        const summaryType = document.getElementById('summary-type');
+        const summaryPayment = document.getElementById('summary-payment');
+        
+        if (summaryCustomer) summaryCustomer.textContent = 'Not specified';
+        if (summaryType) summaryType.textContent = 'Dine In';
+        if (summaryPayment) summaryPayment.textContent = 'Cash';
     }
     
     // Show category
@@ -1910,7 +1941,7 @@ class RestaurantOrderSystem {
             });
         });
         
-        // Add event listeners for out of stock checkboxes
+        // Add event listeners for out of stock checkboxes - FIXED: Now updates menu immediately
         document.querySelectorAll('.out-of-stock-checkbox').forEach(checkbox => {
             checkbox.addEventListener('change', (e) => {
                 const itemId = e.target.getAttribute('data-item-id');
@@ -1983,7 +2014,7 @@ class RestaurantOrderSystem {
         }, 'Updating category...', button);
     }
     
-    // Update item stock status
+    // Update item stock status - FIXED: Now updates menu immediately
     async updateItemStockStatus(itemId, isOutOfStock, checkbox) {
         await this.withLoading(async () => {
             try {
@@ -2006,7 +2037,7 @@ class RestaurantOrderSystem {
                 // Save to local storage
                 this.saveData('menu', this.menu);
                 
-                // Update UI
+                // Update UI in menu management
                 const row = checkbox.closest('.menu-item-row');
                 if (row) {
                     if (isOutOfStock) {
@@ -2028,10 +2059,8 @@ class RestaurantOrderSystem {
                     }
                 }
                 
-                // Update menu items in order tab if it's active
-                if (document.querySelector('#take-order').classList.contains('active')) {
-                    this.renderMenu();
-                }
+                // FIX: Update menu items in order tab immediately without refreshing page
+                this.renderMenu();
                 
                 this.showNotification(
                     `Item marked as ${isOutOfStock ? 'out of stock' : 'available'}`, 

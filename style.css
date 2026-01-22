@@ -911,6 +911,20 @@ body {
     animation: pulse 1.5s infinite;
 }
 
+/* Toast Notifications */
+.toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+}
+
+.toast {
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border: none;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     body {

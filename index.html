@@ -31,16 +31,6 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍽️</text></svg>">
 </head>
 <body>
-    <!-- Loading Overlay -->
-    <div id="loading-overlay" class="loading-overlay">
-        <div class="spinner-container">
-            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <div class="loading-text mt-3">Processing...</div>
-        </div>
-    </div>
-
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
         <div class="container-fluid">
@@ -492,20 +482,22 @@
                         <div class="card-body">
                             <div class="table-responsive">
                                 <table class="table table-hover">
-                                    <thead>
-                                        <tr>
-                                            <th>Category</th>
-                                            <th>Item Name</th>
-                                            <th>Cost</th>
-                                            <th>Price</th>
-                                            <th>Profit</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="menu-management-body">
-                                        <!-- Menu items will be loaded here -->
-                                    </tbody>
-                                </table>
+    <thead>
+        <tr>
+            <th>Category</th>
+            <th>Item Name</th>
+            <th>Cost</th>
+            <th>Price</th>
+            <th>Tax %</th>
+            <th>Profit</th>
+            <th>Stock</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="menu-management-body">
+        <!-- Menu items will be loaded here -->
+    </tbody>
+</table>
                             </div>
                         </div>
                     </div>
@@ -513,75 +505,95 @@
 
                 <div class="col-lg-4">
                     <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">
-                                <i class="fas fa-plus-circle me-2"></i>Add/Edit Menu Item
-                            </h5>
-                        </div>
-                        <div class="card-body">
-                            <form id="menu-item-form">
-                                <div class="mb-3">
-                                    <label class="form-label">Category</label>
-                                    <div class="input-group">
-                                        <select class="form-select" id="item-category" required>
-                                            <option value="">Select Category</option>
-                                        </select>
-                                        <button class="btn btn-outline-secondary" type="button" id="new-category-btn">
-                                            <i class="fas fa-plus"></i>
-                                        </button>
-                                    </div>
-                                    <div class="mt-2" id="new-category-input" style="display: none;">
-                                        <div class="input-group">
-                                            <input type="text" class="form-control" id="new-category-name" placeholder="New category">
-                                            <button class="btn btn-success" type="button" id="save-category-btn">
-                                                <i class="fas fa-check"></i>
-                                            </button>
-                                            <button class="btn btn-secondary" type="button" id="cancel-category-btn">
-                                                <i class="fas fa-times"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label">Item Name</label>
-                                    <input type="text" class="form-control" id="item-name" required>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label">Price (₹)</label>
-                                    <input type="number" class="form-control" id="item-price" min="1" required>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label">Cost (₹)</label>
-                                    <input type="number" class="form-control" id="item-cost" min="0" required>
-                                    <div class="form-text">Cost to make this item (for profit calculation)</div>
-                                </div>
-
-                                <input type="hidden" id="edit-item-id">
-                                
-                                <div class="d-grid gap-2">
-                                    <button type="submit" class="btn btn-success">
-                                        <i class="fas fa-save me-1"></i> Save Item
-                                    </button>
-                                    <button type="button" class="btn btn-secondary" id="cancel-edit-btn">
-                                        <i class="fas fa-times me-1"></i> Cancel Edit
-                                    </button>
-                                </div>
-                            </form>
-
-                            <div class="alert alert-info mt-3">
-                                <h6><i class="fas fa-lightbulb me-2"></i>Tips</h6>
-                                <ul class="mb-0 small">
-                                    <li>Click on any item to edit it</li>
-                                    <li>Add new categories using the + button</li>
-                                    <li>Changes save automatically</li>
-                                    <li>Cost field helps calculate profit</li>
-                                </ul>
-                            </div>
-                        </div>
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-plus-circle me-2"></i>Add/Edit Menu Item
+        </h5>
+    </div>
+    <div class="card-body">
+        <form id="menu-item-form">
+            <div class="mb-3">
+                <label class="form-label">Category</label>
+                <div class="input-group">
+                    <select class="form-select" id="item-category" required>
+                        <option value="">Select Category</option>
+                    </select>
+                    <button class="btn btn-outline-secondary" type="button" id="new-category-btn">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                <div class="mt-2" id="new-category-input" style="display: none;">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="new-category-name" placeholder="New category">
+                        <button class="btn btn-success" type="button" id="save-category-btn">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        <button class="btn btn-secondary" type="button" id="cancel-category-btn">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Item Name</label>
+                <input type="text" class="form-control" id="item-name" required>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Price (₹)</label>
+                    <input type="number" class="form-control" id="item-price" min="1" step="0.01" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Cost (₹)</label>
+                    <input type="number" class="form-control" id="item-cost" min="0" step="0.01" required>
+                    <div class="form-text">Cost to make this item</div>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Tax (%)</label>
+                    <input type="number" class="form-control" id="item-tax" min="0" max="100" step="0.1" value="0">
+                    <div class="form-text">Tax percentage applied to this item</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Stock Status</label>
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" id="item-out-of-stock">
+                        <label class="form-check-label" for="item-out-of-stock">
+                            Mark as Out of Stock
+                        </label>
+                        <div class="form-text">Out of stock items won't appear in new orders</div>
+                    </div>
+                </div>
+            </div>
+
+            <input type="hidden" id="edit-item-id">
+            
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-save me-1"></i> Save Item
+                </button>
+                <button type="button" class="btn btn-secondary" id="cancel-edit-btn">
+                    <i class="fas fa-times me-1"></i> Cancel Edit
+                </button>
+            </div>
+        </form>
+
+        <div class="alert alert-info mt-3">
+            <h6><i class="fas fa-lightbulb me-2"></i>Tips</h6>
+            <ul class="mb-0 small">
+                <li>Click on any item to edit it</li>
+                <li>Add new categories using the + button</li>
+                <li>Mark categories as favorites for quick access</li>
+                <li>Out of stock items are hidden from new orders</li>
+                <li>Tax is calculated automatically for each item</li>
+            </ul>
+        </div>
+    </div>
+</div>
                 </div>
             </div>
         </div>
@@ -923,7 +935,6 @@
                     <h5 class="modal-title">Order Details - #<span id="modal-order-no"></span></h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-            
                 <div class="modal-body">
                     <div class="row mb-3">
                         <div class="col-md-6">

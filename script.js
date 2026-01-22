@@ -85,28 +85,13 @@ class RestaurantOrderSystem {
         this.updateStats();
         this.updateBadges();
         this.updateNextOrderNumber();
+        
+        // Add global reference for HTML event handlers
+        window.restaurantSystem = this;
     }
     
     // Setup tab navigation
     setupTabNavigation() {
-        // Hide all tab contents first
-        document.querySelectorAll('.tab-content').forEach(tab => {
-            tab.style.display = 'none';
-        });
-        
-        // Show only the active tab
-        const activeTab = document.querySelector('.tab-content.active');
-        if (activeTab) {
-            activeTab.style.display = 'block';
-        } else {
-            // Default to take-order tab
-            const defaultTab = document.getElementById('take-order');
-            if (defaultTab) {
-                defaultTab.style.display = 'block';
-                defaultTab.classList.add('active');
-            }
-        }
-        
         // Set up click handlers for nav links
         document.querySelectorAll('.nav-link').forEach(link => {
             link.addEventListener('click', (e) => {
@@ -126,6 +111,9 @@ class RestaurantOrderSystem {
                 }
             });
         });
+        
+        // Set the initial tab
+        this.switchTab('take-order');
     }
     
     // Switch between tabs
@@ -227,11 +215,44 @@ class RestaurantOrderSystem {
             return result;
         } catch (error) {
             console.error('Operation failed:', error);
+            this.showNotification('Error: ' + error.message, 'error');
             throw error;
         } finally {
             this.hideLoading();
             if (button) this.setButtonLoading(button, false);
         }
+    }
+    
+    // Show notification
+    showNotification(message, type = 'info') {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `notification alert alert-${type} alert-dismissible fade show`;
+        notification.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        // Style the notification
+        notification.style.cssText = `
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 300px;
+            max-width: 400px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        `;
+        
+        // Add to document
+        document.body.appendChild(notification);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 5000);
     }
     
     // ================= AUTHENTICATION =================
@@ -1944,45 +1965,8 @@ class RestaurantOrderSystem {
     
     // Show authentication modal
     showAuthModal() {
-        // Create modal if it doesn't exist
-        if (!document.getElementById('authModal')) {
-            const modalHTML = `
-                <div class="modal fade" id="authModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-                    <div class="modal-dialog modal-dialog-centered">
-                        <div class="modal-content">
-                            <div class="modal-header border-0">
-                                <h5 class="modal-title">Welcome to Restaurant POS</h5>
-                            </div>
-                            <div class="modal-body text-center">
-                                <div class="mb-4">
-                                    <i class="fas fa-utensils fa-4x text-primary mb-3"></i>
-                                    <h3>Restaurant Order System</h3>
-                                    <p class="text-muted">Please sign in to manage your restaurant</p>
-                                </div>
-                                
-                                <button class="btn btn-lg btn-primary w-100 mb-3" id="google-signin-btn">
-                                    <i class="fab fa-google me-2"></i> Sign in with Google
-                                </button>
-                                
-                                <div class="text-muted small mt-3">
-                                    <p>By signing in, you agree to our Terms of Service and Privacy Policy</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            document.body.insertAdjacentHTML('beforeend', modalHTML);
-            
-            // Show modal
-            const modal = new bootstrap.Modal(document.getElementById('authModal'));
-            modal.show();
-        } else {
-            // Show existing modal
-            const modal = new bootstrap.Modal(document.getElementById('authModal'));
-            modal.show();
-        }
+        const modal = new bootstrap.Modal(document.getElementById('authModal'));
+        modal.show();
     }
     
     // Hide authentication modal
@@ -1995,59 +1979,8 @@ class RestaurantOrderSystem {
     
     // Show profile setup modal
     showProfileSetupModal() {
-        // Create modal if it doesn't exist
-        if (!document.getElementById('profileSetupModal')) {
-            const modalHTML = `
-                <div class="modal fade" id="profileSetupModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-                    <div class="modal-dialog modal-dialog-centered">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Setup Your Business</h5>
-                            </div>
-                            <div class="modal-body">
-                                <p>Welcome! Please setup your business profile to get started.</p>
-                                
-                                <form id="initial-profile-form">
-                                    <div class="mb-3">
-                                        <label class="form-label">Business Name *</label>
-                                        <input type="text" class="form-control" id="initial-business-name" required>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Business Type</label>
-                                        <select class="form-select" id="initial-business-type">
-                                            <option value="restaurant">Restaurant</option>
-                                            <option value="cafe">Cafe</option>
-                                            <option value="food-truck">Food Truck</option>
-                                            <option value="catering">Catering Service</option>
-                                            <option value="event">Event Stall</option>
-                                        </select>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Contact Phone</label>
-                                        <input type="tel" class="form-control" id="initial-business-phone">
-                                    </div>
-                                </form>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-primary" id="save-initial-profile-btn">
-                                    Save & Continue
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            document.body.insertAdjacentHTML('beforeend', modalHTML);
-            
-            // Show modal
-            const modal = new bootstrap.Modal(document.getElementById('profileSetupModal'));
-            modal.show();
-        } else {
-            // Show existing modal
-            const modal = new bootstrap.Modal(document.getElementById('profileSetupModal'));
-            modal.show();
-        }
+        const modal = new bootstrap.Modal(document.getElementById('profileSetupModal'));
+        modal.show();
     }
     
     // Hide profile setup modal
@@ -2086,6 +2019,40 @@ class RestaurantOrderSystem {
         }, 'Setting up business...', button);
     }
     
+    // Handle business profile submit
+    async handleBusinessProfileSubmit(button) {
+        const businessName = document.getElementById('business-name').value.trim();
+        const businessType = document.getElementById('business-type').value;
+        const businessDescription = document.getElementById('business-description').value.trim();
+        const businessPhone = document.getElementById('business-phone').value.trim();
+        const businessEmail = document.getElementById('business-email').value.trim();
+        const businessAddress = document.getElementById('business-address').value.trim();
+        
+        if (!businessName) {
+            this.showNotification('Business name is required', 'error');
+            return;
+        }
+        
+        await this.withLoading(async () => {
+            try {
+                const profileData = {
+                    name: businessName,
+                    type: businessType,
+                    description: businessDescription,
+                    phone: businessPhone,
+                    email: businessEmail || this.currentUser.email,
+                    address: businessAddress
+                };
+                
+                await this.saveBusinessProfile(profileData);
+                
+            } catch (error) {
+                console.error('Error saving business profile:', error);
+                this.showNotification('Error saving profile', 'error');
+            }
+        }, 'Saving profile...', button);
+    }
+    
     // Update UI for logged in user
     updateUIForLoggedInUser() {
         const profileLink = document.getElementById('profile-nav-link');
@@ -2094,14 +2061,6 @@ class RestaurantOrderSystem {
             const navText = profileLink.querySelector('.nav-text');
             if (navText) navText.textContent = userName.split('@')[0];
         }
-        
-        // Show/hide tabs based on authentication
-        const tabs = document.querySelectorAll('.tab-content');
-        tabs.forEach(tab => {
-            if (tab.id !== 'profile') {
-                tab.style.display = this.currentUser ? 'block' : 'none';
-            }
-        });
     }
     
     // Update user UI elements
@@ -2180,4 +2139,85 @@ class RestaurantOrderSystem {
             totalBusinessRevenue.textContent = `₹${totalRevenue}`;
         }
         if (totalBusinessProfit) {
-            const
+            const totalProfit = this.completedOrders.reduce((sum, order) => sum + (order.totalProfit || 0), 0);
+            totalBusinessProfit.textContent = `₹${totalProfit}`;
+        }
+    }
+    
+    // Update analytics
+    updateAnalytics() {
+        // Calculate analytics data
+        const analyticsRevenue = this.completedOrders.reduce((sum, order) => sum + order.total, 0);
+        const analyticsProfit = this.completedOrders.reduce((sum, order) => sum + (order.totalProfit || 0), 0);
+        const analyticsOrders = this.completedOrders.length;
+        const analyticsMargin = analyticsRevenue > 0 ? ((analyticsProfit / analyticsRevenue) * 100).toFixed(1) : 0;
+        
+        // Update analytics display
+        const analyticsRevenueEl = document.getElementById('analytics-revenue');
+        const analyticsProfitEl = document.getElementById('analytics-profit');
+        const analyticsOrdersEl = document.getElementById('analytics-orders');
+        const analyticsMarginEl = document.getElementById('analytics-margin');
+        
+        if (analyticsRevenueEl) analyticsRevenueEl.textContent = `₹${analyticsRevenue}`;
+        if (analyticsProfitEl) analyticsProfitEl.textContent = `₹${analyticsProfit}`;
+        if (analyticsOrdersEl) analyticsOrdersEl.textContent = analyticsOrders;
+        if (analyticsMarginEl) analyticsMarginEl.textContent = `${analyticsMargin}%`;
+        
+        // Render charts (simplified version)
+        this.renderAnalyticsCharts();
+    }
+    
+    // Render analytics charts (simplified)
+    renderAnalyticsCharts() {
+        // This is a simplified version - you can expand it based on your needs
+        const ctx = document.getElementById('revenueProfitChart');
+        if (ctx && this.completedOrders.length > 0) {
+            // Destroy existing chart if it exists
+            if (this.revenueProfitChart) {
+                this.revenueProfitChart.destroy();
+            }
+            
+            // Create simple bar chart
+            this.revenueProfitChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Revenue', 'Profit'],
+                    datasets: [{
+                        label: 'Amount (₹)',
+                        data: [
+                            this.completedOrders.reduce((sum, order) => sum + order.total, 0),
+                            this.completedOrders.reduce((sum, order) => sum + (order.totalProfit || 0), 0)
+                        ],
+                        backgroundColor: ['#ff6b35', '#28a745']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+    }
+    
+    // ================= INITIALIZE =================
+    
+    // Initialize the system when DOM is loaded
+    static initialize() {
+        // Create global instance
+        window.restaurantSystem = new RestaurantOrderSystem();
+    }
+}
+
+// Initialize when DOM is fully loaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        RestaurantOrderSystem.initialize();
+    });
+} else {
+    RestaurantOrderSystem.initialize();
+}

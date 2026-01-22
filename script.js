@@ -1,4 +1,4 @@
-// Restaurant Order Management System with Firebase - COMPLETE VERSION
+// Restaurant Order Management System with Firebase - COMPLETE WITH LOADING
 class RestaurantOrderSystem {
     constructor() {
         // Firebase services
@@ -14,11 +14,14 @@ class RestaurantOrderSystem {
         this.businessData = null;
         
         // Initialize data from local storage as fallback
-        this.menu = this.loadData('menu') || this.getDefaultMenu();
-        this.categories = this.loadData('categories') || this.getDefaultCategories();
+        this.menu = this.loadData('menu') || [];
+        this.categories = this.loadData('categories') || [];
         this.orders = this.loadData('orders') || [];
         this.completedOrders = this.loadData('completedOrders') || [];
         this.nextOrderId = this.loadData('nextOrderId') || 1001;
+        
+        // Loading states
+        this.loadingQueue = 0;
         
         // Current order state
         this.currentOrder = {
@@ -41,49 +44,14 @@ class RestaurantOrderSystem {
         this.init();
     }
     
-    // Default menu items with cost
+    // Default menu items - EMPTY
     getDefaultMenu() {
-        return [
-            // APPETIZERS
-            { id: 1, category: 'APPETIZERS', name: 'Chicken loaded fries', price: 140, cost: 70 },
-            { id: 2, category: 'APPETIZERS', name: 'Cheesy veg loaded fries', price: 125, cost: 60 },
-            { id: 3, category: 'APPETIZERS', name: 'Salted fries', price: 99, cost: 40 },
-            { id: 4, category: 'APPETIZERS', name: 'Peri peri fries', price: 109, cost: 45 },
-            { id: 5, category: 'APPETIZERS', name: 'Chicken Nuggets (4 pcs)', price: 75, cost: 35 },
-            { id: 6, category: 'APPETIZERS', name: 'Chicken Nuggets (6 pcs)', price: 99, cost: 50 },
-            
-            // WRAPS
-            { id: 7, category: 'WRAPS', name: 'Chicken tikka wrap', price: 130, cost: 60 },
-            { id: 8, category: 'WRAPS', name: 'Paneer tikka wrap', price: 120, cost: 55 },
-            { id: 9, category: 'WRAPS', name: 'Chicken zinger wrap', price: 150, cost: 70 },
-            { id: 10, category: 'WRAPS', name: 'Chicken nugget wrap', price: 120, cost: 55 },
-            
-            // BURGERS
-            { id: 11, category: 'BURGERS', name: 'Classic Veg burger', price: 115, cost: 50 },
-            { id: 12, category: 'BURGERS', name: 'Chicken Bliss burger', price: 135, cost: 60 },
-            
-            // SALADS
-            { id: 13, category: 'SALADS', name: 'Veg salad', price: 99, cost: 40 },
-            { id: 14, category: 'SALADS', name: 'Signature chicken salad', price: 130, cost: 55 },
-            
-            // DESSERTS
-            { id: 15, category: 'DESSERTS', name: 'Chocolate brownie', price: 90, cost: 35 },
-            { id: 16, category: 'DESSERTS', name: 'Red velvet brownie', price: 90, cost: 35 },
-            { id: 17, category: 'DESSERTS', name: 'Lotus biscoff drip brownie', price: 130, cost: 50 },
-            { id: 18, category: 'DESSERTS', name: 'Strawberry choco brownie', price: 110, cost: 45 },
-            { id: 19, category: 'DESSERTS', name: 'Chocolate strawberry cup', price: 120, cost: 50 }
-        ];
+        return []; // Start with empty menu
     }
     
-    // Default categories
+    // Default categories - EMPTY
     getDefaultCategories() {
-        return [
-            'APPETIZERS',
-            'WRAPS', 
-            'BURGERS',
-            'SALADS',
-            'DESSERTS'
-        ];
+        return []; // Start with empty categories
     }
     
     // Local storage methods (fallback)
@@ -162,8 +130,6 @@ class RestaurantOrderSystem {
     
     // Switch between tabs
     switchTab(tabId) {
-        console.log('Switching to tab:', tabId);
-        
         // Remove active class from all nav links
         document.querySelectorAll('.nav-link').forEach(link => {
             link.classList.remove('active');
@@ -211,9 +177,64 @@ class RestaurantOrderSystem {
             case 'profile':
                 this.updateProfileTab();
                 break;
-            // 'take-order' doesn't need special loading
         }
     }
+    
+    // ================= LOADING STATE MANAGEMENT =================
+    
+    // Show loading overlay
+    showLoading(message = 'Processing...') {
+        this.loadingQueue++;
+        const overlay = document.getElementById('loading-overlay');
+        const loadingText = overlay.querySelector('.loading-text');
+        
+        if (overlay && loadingText) {
+            loadingText.textContent = message;
+            overlay.classList.add('show');
+        }
+    }
+    
+    // Hide loading overlay
+    hideLoading() {
+        this.loadingQueue = Math.max(0, this.loadingQueue - 1);
+        
+        if (this.loadingQueue === 0) {
+            const overlay = document.getElementById('loading-overlay');
+            if (overlay) {
+                overlay.classList.remove('show');
+            }
+        }
+    }
+    
+    // Set button loading state
+    setButtonLoading(button, isLoading) {
+        if (isLoading) {
+            button.classList.add('btn-loading');
+            button.disabled = true;
+        } else {
+            button.classList.remove('btn-loading');
+            button.disabled = false;
+        }
+    }
+    
+    // Wrap Firebase operations with loading state
+    async withLoading(operation, loadingMessage = 'Processing...', button = null) {
+        try {
+            this.showLoading(loadingMessage);
+            if (button) this.setButtonLoading(button, true);
+            
+            const result = await operation();
+            return result;
+        } catch (error) {
+            console.error('Operation failed:', error);
+            throw error;
+        } finally {
+            this.hideLoading();
+            if (button) this.setButtonLoading(button, false);
+        }
+    }
+    
+    // ================= AUTHENTICATION =================
     
     // Check authentication state
     initAuth() {
@@ -234,90 +255,94 @@ class RestaurantOrderSystem {
     
     // Load user data from Firestore
     async loadUserData(userId) {
-        try {
-            const userDoc = await this.db.collection('users').doc(userId).get();
-            
-            if (userDoc.exists) {
-                this.userData = userDoc.data();
+        await this.withLoading(async () => {
+            try {
+                const userDoc = await this.db.collection('users').doc(userId).get();
                 
-                // Check if user has a business/stall
-                if (this.userData.businessId) {
-                    this.businessId = this.userData.businessId;
-                    await this.loadBusinessData();
-                    this.hideAuthModal();
+                if (userDoc.exists) {
+                    this.userData = userDoc.data();
+                    
+                    // Check if user has a business/stall
+                    if (this.userData.businessId) {
+                        this.businessId = this.userData.businessId;
+                        await this.loadBusinessData();
+                        this.hideAuthModal();
+                    } else {
+                        this.showProfileSetupModal();
+                    }
                 } else {
+                    // First time user, create user document
+                    await this.db.collection('users').doc(userId).set({
+                        email: this.currentUser.email,
+                        displayName: this.currentUser.displayName,
+                        photoURL: this.currentUser.photoURL,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
                     this.showProfileSetupModal();
                 }
-            } else {
-                // First time user, create user document
-                await this.db.collection('users').doc(userId).set({
-                    email: this.currentUser.email,
-                    displayName: this.currentUser.displayName,
-                    photoURL: this.currentUser.photoURL,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                this.showProfileSetupModal();
+                
+                this.updateUIForLoggedInUser();
+            } catch (error) {
+                console.error('Error loading user data:', error);
+                this.showNotification('Error loading user data', 'error');
             }
-            
-            this.updateUIForLoggedInUser();
-        } catch (error) {
-            console.error('Error loading user data:', error);
-            this.showNotification('Error loading user data', 'error');
-        }
+        }, 'Loading user data...');
     }
     
     // Load business data from Firestore
     async loadBusinessData() {
-        try {
-            // Load business data
-            const businessDoc = await this.db.collection('businesses').doc(this.businessId).get();
-            if (businessDoc.exists) {
-                this.businessData = businessDoc.data();
-                this.categories = this.businessData.categories || this.getDefaultCategories();
-                this.nextOrderId = this.businessData.nextOrderId || 1001;
-                this.updateNextOrderNumber();
+        await this.withLoading(async () => {
+            try {
+                // Load business data
+                const businessDoc = await this.db.collection('businesses').doc(this.businessId).get();
+                if (businessDoc.exists) {
+                    this.businessData = businessDoc.data();
+                    this.categories = this.businessData.categories || [];
+                    this.nextOrderId = this.businessData.nextOrderId || 1001;
+                    this.updateNextOrderNumber();
+                }
+                
+                // Load menu items
+                await this.loadMenuFromFirestore();
+                
+                // Load orders
+                const ordersSnapshot = await this.db.collection('businesses')
+                    .doc(this.businessId)
+                    .collection('orders')
+                    .get();
+                
+                const allOrders = ordersSnapshot.docs.map(doc => ({ 
+                    id: doc.id, 
+                    ...doc.data(),
+                    orderNumber: doc.data().orderNumber || 0
+                }));
+                
+                // Filter ongoing orders locally
+                this.orders = allOrders
+                    .filter(order => order.status === 'preparing' || order.status === 'ready')
+                    .sort((a, b) => new Date(b.orderTime) - new Date(a.orderTime));
+                
+                // Filter completed orders locally
+                this.completedOrders = allOrders
+                    .filter(order => order.status === 'completed')
+                    .sort((a, b) => new Date(b.completedTime || b.orderTime) - new Date(a.completedTime || a.orderTime))
+                    .slice(0, 50);
+                
+                // Update UI
+                this.renderMenu();
+                this.renderOngoingOrders();
+                this.renderCompletedOrders();
+                this.renderMenuManagement();
+                this.updateSummary();
+                this.updateStats();
+                this.updateBadges();
+                
+            } catch (error) {
+                console.error('Error loading business data:', error);
+                this.showNotification('Error loading business data: ' + error.message, 'error');
             }
-            
-            // Load menu items
-            await this.loadMenuFromFirestore();
-            
-            // Load orders - simplified to avoid composite index error
-            const ordersSnapshot = await this.db.collection('businesses')
-                .doc(this.businessId)
-                .collection('orders')
-                .get();
-            
-            const allOrders = ordersSnapshot.docs.map(doc => ({ 
-                id: doc.id, 
-                ...doc.data(),
-                orderNumber: doc.data().orderNumber || 0
-            }));
-            
-            // Filter ongoing orders locally
-            this.orders = allOrders
-                .filter(order => order.status === 'preparing' || order.status === 'ready')
-                .sort((a, b) => new Date(b.orderTime) - new Date(a.orderTime));
-            
-            // Filter completed orders locally
-            this.completedOrders = allOrders
-                .filter(order => order.status === 'completed')
-                .sort((a, b) => new Date(b.completedTime || b.orderTime) - new Date(a.completedTime || a.orderTime))
-                .slice(0, 50);
-            
-            // Update UI
-            this.renderMenu();
-            this.renderOngoingOrders();
-            this.renderCompletedOrders();
-            this.renderMenuManagement();
-            this.updateSummary();
-            this.updateStats();
-            this.updateBadges();
-            
-        } catch (error) {
-            console.error('Error loading business data:', error);
-            this.showNotification('Error loading business data: ' + error.message, 'error');
-        }
+        }, 'Loading business data...');
     }
     
     // Load menu items from Firestore
@@ -338,114 +363,89 @@ class RestaurantOrderSystem {
                 
                 // Save to local storage as backup
                 this.saveData('menu', this.menu);
-            } else {
-                // If no menu exists, create default menu
-                await this.createDefaultMenu();
             }
+            // If empty, menu remains empty - user will add items manually
         } catch (error) {
             console.error('Error loading menu:', error);
             this.showNotification('Error loading menu', 'error');
         }
     }
     
-    // Create default menu for new business
-    async createDefaultMenu() {
-        try {
-            const defaultMenu = this.getDefaultMenu();
-            const batch = this.db.batch();
-            
-            for (const item of defaultMenu) {
-                const newItemRef = this.db.collection('businesses')
-                    .doc(this.businessId)
-                    .collection('menu')
-                    .doc();
-                
-                batch.set(newItemRef, {
-                    name: item.name,
-                    category: item.category,
-                    price: item.price,
-                    cost: item.cost,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            }
-            
-            await batch.commit();
-            await this.loadMenuFromFirestore();
-            
-        } catch (error) {
-            console.error('Error creating default menu:', error);
-            this.showNotification('Error creating menu', 'error');
-        }
-    }
-    
     // Google Sign In
     async signInWithGoogle() {
-        try {
-            const result = await this.auth.signInWithPopup(this.googleProvider);
-            this.currentUser = result.user;
-            this.showNotification('Signed in successfully!', 'success');
-        } catch (error) {
-            console.error('Error signing in:', error);
-            this.showNotification('Error signing in: ' + error.message, 'error');
-        }
+        const button = document.getElementById('google-signin-btn');
+        await this.withLoading(async () => {
+            try {
+                const result = await this.auth.signInWithPopup(this.googleProvider);
+                this.currentUser = result.user;
+                this.showNotification('Signed in successfully!', 'success');
+            } catch (error) {
+                console.error('Error signing in:', error);
+                this.showNotification('Error signing in: ' + error.message, 'error');
+            }
+        }, 'Signing in...', button);
     }
     
     // Sign Out
     async signOut() {
-        try {
-            await this.auth.signOut();
-            this.currentUser = null;
-            this.userData = null;
-            this.businessId = null;
-            this.businessData = null;
-            this.showNotification('Signed out successfully', 'info');
-            this.showAuthModal();
-        } catch (error) {
-            console.error('Error signing out:', error);
-            this.showNotification('Error signing out', 'error');
-        }
+        const button = document.getElementById('logout-btn');
+        await this.withLoading(async () => {
+            try {
+                await this.auth.signOut();
+                this.currentUser = null;
+                this.userData = null;
+                this.businessId = null;
+                this.businessData = null;
+                this.showNotification('Signed out successfully', 'info');
+                this.showAuthModal();
+            } catch (error) {
+                console.error('Error signing out:', error);
+                this.showNotification('Error signing out', 'error');
+            }
+        }, 'Signing out...', button);
     }
     
     // Create or update business profile
     async saveBusinessProfile(profileData) {
-        try {
-            if (!this.businessId) {
-                // Create new business
-                const businessRef = await this.db.collection('businesses').add({
-                    ...profileData,
-                    ownerId: this.currentUser.uid,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    categories: this.getDefaultCategories(),
-                    nextOrderId: 1001
-                });
+        await this.withLoading(async () => {
+            try {
+                if (!this.businessId) {
+                    // Create new business
+                    const businessRef = await this.db.collection('businesses').add({
+                        ...profileData,
+                        ownerId: this.currentUser.uid,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        categories: [], // Empty categories array
+                        nextOrderId: 1001
+                    });
+                    
+                    this.businessId = businessRef.id;
+                    
+                    // Update user document with business ID
+                    await this.db.collection('users').doc(this.currentUser.uid).update({
+                        businessId: this.businessId,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    
+                    this.userData.businessId = this.businessId;
+                } else {
+                    // Update existing business
+                    await this.db.collection('businesses').doc(this.businessId).update({
+                        ...profileData,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
                 
-                this.businessId = businessRef.id;
+                this.hideProfileSetupModal();
+                this.showNotification('Profile saved successfully!', 'success');
+                await this.loadBusinessData();
                 
-                // Update user document with business ID
-                await this.db.collection('users').doc(this.currentUser.uid).update({
-                    businessId: this.businessId,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                
-                this.userData.businessId = this.businessId;
-            } else {
-                // Update existing business
-                await this.db.collection('businesses').doc(this.businessId).update({
-                    ...profileData,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
+            } catch (error) {
+                console.error('Error saving business profile:', error);
+                this.showNotification('Error saving profile', 'error');
             }
-            
-            this.hideProfileSetupModal();
-            this.showNotification('Profile saved successfully!', 'success');
-            await this.loadBusinessData();
-            
-        } catch (error) {
-            console.error('Error saving business profile:', error);
-            this.showNotification('Error saving profile', 'error');
-        }
+        }, 'Saving profile...');
     }
     
     // Initialize event listeners
@@ -475,9 +475,11 @@ class RestaurantOrderSystem {
             this.renderMenu(e.target.value.toLowerCase());
         });
         
-        // Action buttons
+        // Action buttons - with loading states
         document.getElementById('clear-order-btn')?.addEventListener('click', () => this.clearCurrentOrder());
-        document.getElementById('place-order-btn')?.addEventListener('click', () => this.placeOrder());
+        
+        const placeOrderBtn = document.getElementById('place-order-btn');
+        placeOrderBtn?.addEventListener('click', () => this.placeOrder(placeOrderBtn));
         
         // Quick action buttons
         document.getElementById('quick-drinks')?.addEventListener('click', () => this.showCategory('DRINKS'));
@@ -485,17 +487,20 @@ class RestaurantOrderSystem {
         document.getElementById('quick-appetizers')?.addEventListener('click', () => this.showCategory('APPETIZERS'));
         document.getElementById('quick-wraps')?.addEventListener('click', () => this.showCategory('WRAPS'));
         
-        // Refresh orders
-        document.getElementById('refresh-orders-btn')?.addEventListener('click', () => this.renderOngoingOrders());
+        // Refresh orders with loading
+        const refreshOrdersBtn = document.getElementById('refresh-orders-btn');
+        refreshOrdersBtn?.addEventListener('click', () => this.loadBusinessData());
         
         // Print all
         document.getElementById('print-all-btn')?.addEventListener('click', () => this.printAllOrders());
         
         // Download PDF
-        document.getElementById('download-pdf-btn')?.addEventListener('click', () => this.downloadPDFReport());
+        const downloadPdfBtn = document.getElementById('download-pdf-btn');
+        downloadPdfBtn?.addEventListener('click', () => this.downloadPDFReport(downloadPdfBtn));
         
-        // Clear completed
-        document.getElementById('clear-completed-btn')?.addEventListener('click', () => this.clearCompletedOrders());
+        // Clear completed with loading
+        const clearCompletedBtn = document.getElementById('clear-completed-btn');
+        clearCompletedBtn?.addEventListener('click', () => this.clearCompletedOrders(clearCompletedBtn));
         
         // Date filter
         document.getElementById('date-filter')?.addEventListener('change', () => this.renderCompletedOrders());
@@ -503,25 +508,33 @@ class RestaurantOrderSystem {
         // Analytics period filter
         document.getElementById('analytics-period')?.addEventListener('change', () => this.updateAnalytics());
         
-        // Menu management
-        document.getElementById('menu-item-form')?.addEventListener('submit', (e) => {
+        // Menu management - with loading states
+        const menuItemForm = document.getElementById('menu-item-form');
+        const saveMenuItemBtn = menuItemForm?.querySelector('button[type="submit"]');
+        menuItemForm?.addEventListener('submit', (e) => {
             e.preventDefault();
-            this.saveMenuItem();
+            this.saveMenuItem(saveMenuItemBtn);
         });
         
         document.getElementById('cancel-edit-btn')?.addEventListener('click', () => this.cancelEditMenuItem());
         document.getElementById('add-category-btn')?.addEventListener('click', () => this.showNewCategoryInput());
-        document.getElementById('new-category-btn')?.addEventListener('click', () => this.showNewCategoryInput());
-        document.getElementById('save-category-btn')?.addEventListener('click', () => this.saveNewCategory());
+        
+        const newCategoryBtn = document.getElementById('new-category-btn');
+        newCategoryBtn?.addEventListener('click', () => this.showNewCategoryInput());
+        
+        const saveCategoryBtn = document.getElementById('save-category-btn');
+        saveCategoryBtn?.addEventListener('click', () => this.saveNewCategory(saveCategoryBtn));
+        
         document.getElementById('cancel-category-btn')?.addEventListener('click', () => this.hideNewCategoryInput());
         
         // Complete order in modal
-        document.getElementById('complete-order-btn')?.addEventListener('click', () => {
-            const orderId = document.getElementById('complete-order-btn').getAttribute('data-order-id');
-            this.completeOrder(orderId);
+        const completeOrderBtn = document.getElementById('complete-order-btn');
+        completeOrderBtn?.addEventListener('click', (e) => {
+            const orderId = e.currentTarget.getAttribute('data-order-id');
+            this.completeOrder(orderId, completeOrderBtn);
         });
         
-        // Auth and profile buttons (using event delegation for modals)
+        // Auth and profile buttons
         document.addEventListener('click', (e) => {
             if (e.target && e.target.id === 'google-signin-btn') {
                 e.preventDefault();
@@ -530,7 +543,7 @@ class RestaurantOrderSystem {
             
             if (e.target && e.target.id === 'save-initial-profile-btn') {
                 e.preventDefault();
-                this.saveInitialProfile();
+                this.saveInitialProfile(e.target);
             }
             
             if (e.target && e.target.id === 'logout-btn') {
@@ -540,9 +553,11 @@ class RestaurantOrderSystem {
         });
         
         // Business profile form
-        document.getElementById('business-profile-form')?.addEventListener('submit', (e) => {
+        const businessProfileForm = document.getElementById('business-profile-form');
+        const saveProfileBtn = businessProfileForm?.querySelector('button[type="submit"]');
+        businessProfileForm?.addEventListener('submit', (e) => {
             e.preventDefault();
-            this.handleBusinessProfileSubmit();
+            this.handleBusinessProfileSubmit(saveProfileBtn);
         });
     }
     
@@ -552,6 +567,17 @@ class RestaurantOrderSystem {
         if (!container) return;
         
         container.innerHTML = '';
+        
+        if (this.menu.length === 0) {
+            container.innerHTML = `
+                <div class="col-12 text-center py-5">
+                    <i class="fas fa-utensils fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No Menu Items</h5>
+                    <p class="text-muted">Add items in the Menu Management tab</p>
+                </div>
+            `;
+            return;
+        }
         
         // Group items by category
         const categories = {};
@@ -851,8 +877,8 @@ class RestaurantOrderSystem {
         }
     }
     
-    // Place new order
-    async placeOrder() {
+    // Place new order with loading
+    async placeOrder(button) {
         if (this.currentOrder.items.length === 0) {
             this.showNotification('Please add items to the order', 'error');
             return;
@@ -864,81 +890,83 @@ class RestaurantOrderSystem {
             return;
         }
         
-        // Calculate totals
-        const total = this.currentOrder.items.reduce((sum, item) => sum + item.total, 0);
-        const totalCost = this.currentOrder.items.reduce((sum, item) => 
-            sum + (item.totalCost || (item.quantity * item.cost)), 0);
-        const totalProfit = total - totalCost;
-        
-        // Create order
-        const order = {
-            customerName: this.currentOrder.customerName,
-            customerPhone: this.currentOrder.customerPhone,
-            orderType: this.currentOrder.orderType,
-            paymentMethod: this.currentOrder.paymentMethod,
-            items: this.currentOrder.items.map(item => ({
-                id: item.id,
-                name: item.name,
-                price: item.price,
-                cost: item.cost,
-                quantity: item.quantity,
-                total: item.total
-            })),
-            total: total,
-            totalCost: totalCost,
-            totalProfit: totalProfit,
-            orderTime: new Date().toISOString(),
-            status: 'preparing',
-            orderNumber: this.nextOrderId,
-            businessId: this.businessId
-        };
-        
-        try {
-            // Save to Firestore
-            const orderRef = await this.db.collection('businesses')
-                .doc(this.businessId)
-                .collection('orders')
-                .add({
-                    ...order,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        await this.withLoading(async () => {
+            // Calculate totals
+            const total = this.currentOrder.items.reduce((sum, item) => sum + item.total, 0);
+            const totalCost = this.currentOrder.items.reduce((sum, item) => 
+                sum + (item.totalCost || (item.quantity * item.cost)), 0);
+            const totalProfit = total - totalCost;
+            
+            // Create order
+            const order = {
+                customerName: this.currentOrder.customerName,
+                customerPhone: this.currentOrder.customerPhone,
+                orderType: this.currentOrder.orderType,
+                paymentMethod: this.currentOrder.paymentMethod,
+                items: this.currentOrder.items.map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    price: item.price,
+                    cost: item.cost,
+                    quantity: item.quantity,
+                    total: item.total
+                })),
+                total: total,
+                totalCost: totalCost,
+                totalProfit: totalProfit,
+                orderTime: new Date().toISOString(),
+                status: 'preparing',
+                orderNumber: this.nextOrderId,
+                businessId: this.businessId
+            };
+            
+            try {
+                // Save to Firestore
+                const orderRef = await this.db.collection('businesses')
+                    .doc(this.businessId)
+                    .collection('orders')
+                    .add({
+                        ...order,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                
+                // Update next order ID in business document
+                await this.db.collection('businesses').doc(this.businessId).update({
+                    nextOrderId: this.nextOrderId + 1,
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
-            
-            // Update next order ID in business document
-            await this.db.collection('businesses').doc(this.businessId).update({
-                nextOrderId: this.nextOrderId + 1,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            
-            // Add to local orders array
-            order.id = orderRef.id;
-            this.orders.unshift(order);
-            
-            // Increment next order ID
-            this.nextOrderId++;
-            
-            // Save to local storage as backup
-            this.saveData('nextOrderId', this.nextOrderId);
-            this.saveData('orders', this.orders);
-            
-            // Clear current order
-            this.clearCurrentOrder();
-            
-            // Update UI
-            this.updateBadges();
-            this.updateStats();
-            this.updateNextOrderNumber();
-            
-            // Show success message
-            this.showNotification(`Order #${order.orderNumber} placed successfully!`, 'success');
-            
-            // Switch to ongoing orders tab
-            this.switchTab('ongoing-orders');
-            
-        } catch (error) {
-            console.error('Error placing order:', error);
-            this.showNotification('Error placing order: ' + error.message, 'error');
-        }
+                
+                // Add to local orders array
+                order.id = orderRef.id;
+                this.orders.unshift(order);
+                
+                // Increment next order ID
+                this.nextOrderId++;
+                
+                // Save to local storage as backup
+                this.saveData('nextOrderId', this.nextOrderId);
+                this.saveData('orders', this.orders);
+                
+                // Clear current order
+                this.clearCurrentOrder();
+                
+                // Update UI
+                this.updateBadges();
+                this.updateStats();
+                this.updateNextOrderNumber();
+                
+                // Show success message
+                this.showNotification(`Order #${order.orderNumber} placed successfully!`, 'success');
+                
+                // Switch to ongoing orders tab
+                this.switchTab('ongoing-orders');
+                
+            } catch (error) {
+                console.error('Error placing order:', error);
+                this.showNotification('Error placing order: ' + error.message, 'error');
+            }
+        }, 'Placing order...', button);
     }
     
     // Clear current order
@@ -1040,7 +1068,7 @@ class RestaurantOrderSystem {
         
         tbody.innerHTML = html;
         
-        // Add event listeners
+        // Add event listeners with loading
         document.querySelectorAll('.view-order-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const orderId = e.currentTarget.getAttribute('data-order-id');
@@ -1051,14 +1079,14 @@ class RestaurantOrderSystem {
         document.querySelectorAll('.complete-order-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const orderId = e.currentTarget.getAttribute('data-order-id');
-                this.completeOrder(orderId);
+                this.completeOrder(orderId, btn);
             });
         });
         
         document.querySelectorAll('.delete-order-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const orderId = e.currentTarget.getAttribute('data-order-id');
-                this.deleteOrder(orderId);
+                this.deleteOrder(orderId, btn);
             });
         });
     }
@@ -1109,64 +1137,66 @@ class RestaurantOrderSystem {
         modal.show();
     }
     
-    // Complete order
-    async completeOrder(orderId) {
+    // Complete order with loading
+    async completeOrder(orderId, button) {
         const orderIndex = this.orders.findIndex(o => o.id == orderId);
         if (orderIndex === -1) return;
         
-        try {
-            // Remove from ongoing orders array
-            const [completedOrder] = this.orders.splice(orderIndex, 1);
-            
-            // Update order in Firestore
-            await this.db.collection('businesses')
-                .doc(this.businessId)
-                .collection('orders')
-                .doc(orderId)
-                .update({
-                    status: 'completed',
-                    completedTime: new Date().toISOString(),
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            
-            // Update local order
-            completedOrder.status = 'completed';
-            completedOrder.completedTime = new Date().toISOString();
-            
-            // Add to completed orders array
-            this.completedOrders.unshift(completedOrder);
-            
-            // Update local storage
-            this.saveData('orders', this.orders);
-            this.saveData('completedOrders', this.completedOrders);
-            
-            // Update UI
-            this.renderOngoingOrders();
-            this.renderCompletedOrders();
-            this.updateBadges();
-            this.updateStats();
-            
-            // Update analytics if on analytics tab
-            const currentTab = document.querySelector('.tab-content.active');
-            if (currentTab && currentTab.id === 'analytics') {
-                this.updateAnalytics();
+        await this.withLoading(async () => {
+            try {
+                // Remove from ongoing orders array
+                const [completedOrder] = this.orders.splice(orderIndex, 1);
+                
+                // Update order in Firestore
+                await this.db.collection('businesses')
+                    .doc(this.businessId)
+                    .collection('orders')
+                    .doc(orderId)
+                    .update({
+                        status: 'completed',
+                        completedTime: new Date().toISOString(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                
+                // Update local order
+                completedOrder.status = 'completed';
+                completedOrder.completedTime = new Date().toISOString();
+                
+                // Add to completed orders array
+                this.completedOrders.unshift(completedOrder);
+                
+                // Update local storage
+                this.saveData('orders', this.orders);
+                this.saveData('completedOrders', this.completedOrders);
+                
+                // Update UI
+                this.renderOngoingOrders();
+                this.renderCompletedOrders();
+                this.updateBadges();
+                this.updateStats();
+                
+                // Update analytics if on analytics tab
+                const currentTab = document.querySelector('.tab-content.active');
+                if (currentTab && currentTab.id === 'analytics') {
+                    this.updateAnalytics();
+                }
+                
+                // Show success
+                this.showNotification(`Order #${completedOrder.orderNumber || completedOrder.id} completed!`, 'success');
+                
+                // Close modal if open
+                const modal = bootstrap.Modal.getInstance(document.getElementById('orderDetailsModal'));
+                if (modal) modal.hide();
+                
+            } catch (error) {
+                console.error('Error completing order:', error);
+                this.showNotification('Error completing order: ' + error.message, 'error');
             }
-            
-            // Show success
-            this.showNotification(`Order #${completedOrder.orderNumber || completedOrder.id} completed!`, 'success');
-            
-            // Close modal if open
-            const modal = bootstrap.Modal.getInstance(document.getElementById('orderDetailsModal'));
-            if (modal) modal.hide();
-            
-        } catch (error) {
-            console.error('Error completing order:', error);
-            this.showNotification('Error completing order: ' + error.message, 'error');
-        }
+        }, 'Completing order...', button);
     }
     
-    // Delete order
-    async deleteOrder(orderId) {
+    // Delete order with loading
+    async deleteOrder(orderId, button) {
         if (!confirm('Are you sure you want to delete this order?')) {
             return;
         }
@@ -1174,30 +1204,32 @@ class RestaurantOrderSystem {
         const orderIndex = this.orders.findIndex(o => o.id == orderId);
         if (orderIndex === -1) return;
         
-        try {
-            // Delete from Firestore
-            await this.db.collection('businesses')
-                .doc(this.businessId)
-                .collection('orders')
-                .doc(orderId)
-                .delete();
-            
-            // Remove from local array
-            this.orders.splice(orderIndex, 1);
-            
-            // Update local storage
-            this.saveData('orders', this.orders);
-            
-            // Update UI
-            this.renderOngoingOrders();
-            this.updateBadges();
-            
-            this.showNotification('Order deleted', 'success');
-            
-        } catch (error) {
-            console.error('Error deleting order:', error);
-            this.showNotification('Error deleting order: ' + error.message, 'error');
-        }
+        await this.withLoading(async () => {
+            try {
+                // Delete from Firestore
+                await this.db.collection('businesses')
+                    .doc(this.businessId)
+                    .collection('orders')
+                    .doc(orderId)
+                    .delete();
+                
+                // Remove from local array
+                this.orders.splice(orderIndex, 1);
+                
+                // Update local storage
+                this.saveData('orders', this.orders);
+                
+                // Update UI
+                this.renderOngoingOrders();
+                this.updateBadges();
+                
+                this.showNotification('Order deleted', 'success');
+                
+            } catch (error) {
+                console.error('Error deleting order:', error);
+                this.showNotification('Error deleting order: ' + error.message, 'error');
+            }
+        }, 'Deleting order...', button);
     }
     
     // Print all orders
@@ -1350,128 +1382,132 @@ class RestaurantOrderSystem {
         }
     }
     
-    // Download PDF report
-    downloadPDFReport() {
+    // Download PDF report with loading
+    async downloadPDFReport(button) {
         if (this.completedOrders.length === 0) {
             this.showNotification('No completed orders to generate report', 'error');
             return;
         }
         
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        
-        // Add title
-        doc.setFontSize(20);
-        doc.setTextColor(40, 40, 40);
-        doc.text('Restaurant Sales Report', 105, 20, { align: 'center' });
-        
-        // Add date
-        doc.setFontSize(12);
-        doc.setTextColor(100, 100, 100);
-        doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 105, 30, { align: 'center' });
-        
-        // Add summary
-        const totalRevenue = this.completedOrders.reduce((sum, order) => sum + order.total, 0);
-        const totalCost = this.completedOrders.reduce((sum, order) => sum + (order.totalCost || 0), 0);
-        const totalProfit = totalRevenue - totalCost;
-        const profitMargin = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(2) : 0;
-        const totalOrders = this.completedOrders.length;
-        
-        doc.setFontSize(14);
-        doc.setTextColor(0, 0, 0);
-        doc.text('Summary', 20, 45);
-        
-        doc.setFontSize(11);
-        doc.text(`Total Orders: ${totalOrders}`, 20, 55);
-        doc.text(`Total Revenue: ₹${totalRevenue}`, 20, 62);
-        doc.text(`Total Cost: ₹${totalCost}`, 20, 69);
-        doc.text(`Total Profit: ₹${totalProfit}`, 20, 76);
-        doc.text(`Profit Margin: ${profitMargin}%`, 20, 83);
-        
-        // Calculate item-wise sales
-        const itemSales = {};
-        this.completedOrders.forEach(order => {
-            order.items.forEach(item => {
-                if (!itemSales[item.name]) {
-                    itemSales[item.name] = {
-                        quantity: 0,
-                        revenue: 0,
-                        cost: 0,
-                        profit: 0
-                    };
-                }
-                const itemCost = item.cost || 0;
-                const itemProfit = (item.price - itemCost) * item.quantity;
-                
-                itemSales[item.name].quantity += item.quantity;
-                itemSales[item.name].revenue += item.total;
-                itemSales[item.name].cost += itemCost * item.quantity;
-                itemSales[item.name].profit += itemProfit;
+        await this.withLoading(async () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Add title
+            doc.setFontSize(20);
+            doc.setTextColor(40, 40, 40);
+            doc.text('Restaurant Sales Report', 105, 20, { align: 'center' });
+            
+            // Add date
+            doc.setFontSize(12);
+            doc.setTextColor(100, 100, 100);
+            doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 105, 30, { align: 'center' });
+            
+            // Add summary
+            const totalRevenue = this.completedOrders.reduce((sum, order) => sum + order.total, 0);
+            const totalCost = this.completedOrders.reduce((sum, order) => sum + (order.totalCost || 0), 0);
+            const totalProfit = totalRevenue - totalCost;
+            const profitMargin = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(2) : 0;
+            const totalOrders = this.completedOrders.length;
+            
+            doc.setFontSize(14);
+            doc.setTextColor(0, 0, 0);
+            doc.text('Summary', 20, 45);
+            
+            doc.setFontSize(11);
+            doc.text(`Total Orders: ${totalOrders}`, 20, 55);
+            doc.text(`Total Revenue: ₹${totalRevenue}`, 20, 62);
+            doc.text(`Total Cost: ₹${totalCost}`, 20, 69);
+            doc.text(`Total Profit: ₹${totalProfit}`, 20, 76);
+            doc.text(`Profit Margin: ${profitMargin}%`, 20, 83);
+            
+            // Calculate item-wise sales
+            const itemSales = {};
+            this.completedOrders.forEach(order => {
+                order.items.forEach(item => {
+                    if (!itemSales[item.name]) {
+                        itemSales[item.name] = {
+                            quantity: 0,
+                            revenue: 0,
+                            cost: 0,
+                            profit: 0
+                        };
+                    }
+                    const itemCost = item.cost || 0;
+                    const itemProfit = (item.price - itemCost) * item.quantity;
+                    
+                    itemSales[item.name].quantity += item.quantity;
+                    itemSales[item.name].revenue += item.total;
+                    itemSales[item.name].cost += itemCost * item.quantity;
+                    itemSales[item.name].profit += itemProfit;
+                });
             });
-        });
-        
-        // Prepare table data for item-wise sales with profit
-        const tableData = Object.entries(itemSales).map(([itemName, data], index) => {
-            const margin = data.revenue > 0 ? ((data.profit / data.revenue) * 100).toFixed(1) : 0;
-            return [
-                index + 1,
-                itemName,
-                data.quantity,
-                `₹${data.revenue}`,
-                `₹${data.cost}`,
-                `₹${data.profit}`,
-                `${margin}%`
-            ];
-        });
-        
-        // Add item-wise sales table with profit
-        doc.autoTable({
-            head: [['#', 'Item Name', 'Qty', 'Revenue', 'Cost', 'Profit', 'Margin']],
-            body: tableData,
-            startY: 90,
-            theme: 'grid',
-            headStyles: { fillColor: [255, 107, 53] }
-        });
-        
-        // Save PDF
-        doc.save(`sales-profit-report-${new Date().toISOString().split('T')[0]}.pdf`);
-        
-        this.showNotification('PDF report with profit analysis downloaded!', 'success');
+            
+            // Prepare table data for item-wise sales with profit
+            const tableData = Object.entries(itemSales).map(([itemName, data], index) => {
+                const margin = data.revenue > 0 ? ((data.profit / data.revenue) * 100).toFixed(1) : 0;
+                return [
+                    index + 1,
+                    itemName,
+                    data.quantity,
+                    `₹${data.revenue}`,
+                    `₹${data.cost}`,
+                    `₹${data.profit}`,
+                    `${margin}%`
+                ];
+            });
+            
+            // Add item-wise sales table with profit
+            doc.autoTable({
+                head: [['#', 'Item Name', 'Qty', 'Revenue', 'Cost', 'Profit', 'Margin']],
+                body: tableData,
+                startY: 90,
+                theme: 'grid',
+                headStyles: { fillColor: [255, 107, 53] }
+            });
+            
+            // Save PDF
+            doc.save(`sales-profit-report-${new Date().toISOString().split('T')[0]}.pdf`);
+            
+            this.showNotification('PDF report with profit analysis downloaded!', 'success');
+        }, 'Generating PDF...', button);
     }
     
-    // Clear completed orders
-    async clearCompletedOrders() {
+    // Clear completed orders with loading
+    async clearCompletedOrders(button) {
         if (this.completedOrders.length === 0) {
             this.showNotification('No completed orders to clear', 'error');
             return;
         }
         
         if (confirm('Are you sure you want to clear all completed orders? This action cannot be undone.')) {
-            try {
-                // Delete from Firestore
-                for (const order of this.completedOrders) {
-                    await this.db.collection('businesses')
-                        .doc(this.businessId)
-                        .collection('orders')
-                        .doc(order.id)
-                        .delete();
+            await this.withLoading(async () => {
+                try {
+                    // Delete from Firestore
+                    for (const order of this.completedOrders) {
+                        await this.db.collection('businesses')
+                            .doc(this.businessId)
+                            .collection('orders')
+                            .doc(order.id)
+                            .delete();
+                    }
+                    
+                    // Clear local array
+                    this.completedOrders = [];
+                    
+                    // Update local storage
+                    this.saveData('completedOrders', this.completedOrders);
+                    
+                    // Update UI
+                    this.renderCompletedOrders();
+                    this.updateBadges();
+                    
+                    this.showNotification('All completed orders cleared', 'success');
+                } catch (error) {
+                    console.error('Error clearing completed orders:', error);
+                    this.showNotification('Error clearing completed orders', 'error');
                 }
-                
-                // Clear local array
-                this.completedOrders = [];
-                
-                // Update local storage
-                this.saveData('completedOrders', this.completedOrders);
-                
-                // Update UI
-                this.renderCompletedOrders();
-                this.updateBadges();
-                
-                this.showNotification('All completed orders cleared', 'success');
-            } catch (error) {
-                console.error('Error clearing completed orders:', error);
-                this.showNotification('Error clearing completed orders', 'error');
-            }
+            }, 'Clearing orders...', button);
         }
     }
     
@@ -1488,6 +1524,7 @@ class RestaurantOrderSystem {
                     <td colspan="6" class="text-center py-4">
                         <i class="fas fa-utensils fa-2x text-muted mb-2"></i>
                         <p class="text-muted">No menu items added yet</p>
+                        <p class="text-muted small">Start by adding a category and then menu items</p>
                     </td>
                 </tr>
             `;
@@ -1504,6 +1541,30 @@ class RestaurantOrderSystem {
             }
             itemsByCategory[item.category].push(item);
         });
+        
+        // If no categories yet, show message
+        if (this.categories.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center py-4">
+                        <i class="fas fa-tags fa-2x text-muted mb-2"></i>
+                        <p class="text-muted">No categories added yet</p>
+                        <button class="btn btn-sm btn-primary mt-2" id="add-first-category-btn">
+                            <i class="fas fa-plus me-1"></i> Add First Category
+                        </button>
+                    </td>
+                </tr>
+            `;
+            
+            // Add event listener for the button
+            setTimeout(() => {
+                document.getElementById('add-first-category-btn')?.addEventListener('click', () => {
+                    this.showNewCategoryInput();
+                });
+            }, 100);
+            
+            return;
+        }
         
         // Render items grouped by category
         Object.keys(itemsByCategory).sort().forEach(category => {
@@ -1571,14 +1632,14 @@ class RestaurantOrderSystem {
         document.querySelectorAll('.delete-item-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const itemId = e.currentTarget.getAttribute('data-item-id');
-                this.deleteMenuItem(itemId);
+                this.deleteMenuItem(itemId, btn);
             });
         });
         
         document.querySelectorAll('.delete-category-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const category = e.currentTarget.getAttribute('data-category');
-                this.deleteCategory(category);
+                this.deleteCategory(category, btn);
             });
         });
         
@@ -1600,6 +1661,14 @@ class RestaurantOrderSystem {
         
         categorySelect.innerHTML = '<option value="">Select Category</option>';
         
+        if (this.categories.length === 0) {
+            categorySelect.innerHTML = `
+                <option value="">No categories yet</option>
+                <option value="" disabled>Click "+" to add first category</option>
+            `;
+            return;
+        }
+        
         this.categories.forEach(category => {
             const option = document.createElement('option');
             option.value = category;
@@ -1620,8 +1689,8 @@ class RestaurantOrderSystem {
         document.getElementById('new-category-name').value = '';
     }
     
-    // Save new category
-    async saveNewCategory() {
+    // Save new category with loading
+    async saveNewCategory(button) {
         const categoryInput = document.getElementById('new-category-name');
         const categoryName = categoryInput.value.trim().toUpperCase();
         
@@ -1635,33 +1704,40 @@ class RestaurantOrderSystem {
             return;
         }
         
-        try {
-            // Add to local array
-            this.categories.push(categoryName);
-            
-            // Update in Firestore
-            await this.db.collection('businesses').doc(this.businessId).update({
-                categories: this.categories,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            
-            // Update UI
-            this.loadCategoriesDropdown();
-            this.hideNewCategoryInput();
-            
-            // Clear the input
-            categoryInput.value = '';
-            
-            this.showNotification(`Category "${categoryName}" added successfully`, 'success');
-            
-        } catch (error) {
-            console.error('Error saving category:', error);
-            this.showNotification('Error saving category', 'error');
-        }
+        await this.withLoading(async () => {
+            try {
+                // Add to local array
+                this.categories.push(categoryName);
+                
+                // Update in Firestore
+                await this.db.collection('businesses').doc(this.businessId).update({
+                    categories: this.categories,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                // Update UI
+                this.loadCategoriesDropdown();
+                this.hideNewCategoryInput();
+                
+                // Clear the input
+                categoryInput.value = '';
+                
+                this.showNotification(`Category "${categoryName}" added successfully`, 'success');
+                
+                // If this is the first category, refresh menu management
+                if (this.categories.length === 1) {
+                    this.renderMenuManagement();
+                }
+                
+            } catch (error) {
+                console.error('Error saving category:', error);
+                this.showNotification('Error saving category', 'error');
+            }
+        }, 'Saving category...', button);
     }
     
-    // Delete category
-    async deleteCategory(category) {
+    // Delete category with loading
+    async deleteCategory(category, button) {
         // Check if category has items
         const itemsInCategory = this.menu.filter(item => item.category === category);
         
@@ -1674,26 +1750,28 @@ class RestaurantOrderSystem {
             return;
         }
         
-        try {
-            // Remove from local array
-            this.categories = this.categories.filter(cat => cat !== category);
-            
-            // Update in Firestore
-            await this.db.collection('businesses').doc(this.businessId).update({
-                categories: this.categories,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            
-            // Update UI
-            this.loadCategoriesDropdown();
-            this.renderMenuManagement();
-            
-            this.showNotification(`Category "${category}" deleted successfully`, 'success');
-            
-        } catch (error) {
-            console.error('Error deleting category:', error);
-            this.showNotification('Error deleting category', 'error');
-        }
+        await this.withLoading(async () => {
+            try {
+                // Remove from local array
+                this.categories = this.categories.filter(cat => cat !== category);
+                
+                // Update in Firestore
+                await this.db.collection('businesses').doc(this.businessId).update({
+                    categories: this.categories,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                // Update UI
+                this.loadCategoriesDropdown();
+                this.renderMenuManagement();
+                
+                this.showNotification(`Category "${category}" deleted successfully`, 'success');
+                
+            } catch (error) {
+                console.error('Error deleting category:', error);
+                this.showNotification('Error deleting category', 'error');
+            }
+        }, 'Deleting category...', button);
     }
     
     // Edit menu item
@@ -1739,8 +1817,8 @@ class RestaurantOrderSystem {
         }
     }
     
-    // Save menu item
-    async saveMenuItem() {
+    // Save menu item with loading
+    async saveMenuItem(button) {
         const category = document.getElementById('item-category').value;
         const name = document.getElementById('item-name').value.trim();
         const price = parseFloat(document.getElementById('item-price').value);
@@ -1763,102 +1841,106 @@ class RestaurantOrderSystem {
             return;
         }
         
-        try {
-            const itemData = {
-                category: category,
-                name: name,
-                price: price,
-                cost: cost,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            
-            if (itemId) {
-                // Update existing item
-                await this.db.collection('businesses')
-                    .doc(this.businessId)
-                    .collection('menu')
-                    .doc(itemId)
-                    .update(itemData);
+        await this.withLoading(async () => {
+            try {
+                const itemData = {
+                    category: category,
+                    name: name,
+                    price: price,
+                    cost: cost,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
                 
-                // Update local array
-                const index = this.menu.findIndex(item => item.id === itemId);
-                if (index !== -1) {
-                    this.menu[index] = { ...this.menu[index], ...itemData };
+                if (itemId) {
+                    // Update existing item
+                    await this.db.collection('businesses')
+                        .doc(this.businessId)
+                        .collection('menu')
+                        .doc(itemId)
+                        .update(itemData);
+                    
+                    // Update local array
+                    const index = this.menu.findIndex(item => item.id === itemId);
+                    if (index !== -1) {
+                        this.menu[index] = { ...this.menu[index], ...itemData };
+                    }
+                    
+                    this.showNotification('Menu item updated successfully', 'success');
+                } else {
+                    // Add new item
+                    itemData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                    
+                    const newItemRef = await this.db.collection('businesses')
+                        .doc(this.businessId)
+                        .collection('menu')
+                        .add(itemData);
+                    
+                    // Add to local array
+                    this.menu.push({
+                        id: newItemRef.id,
+                        ...itemData
+                    });
+                    
+                    this.showNotification('Menu item added successfully', 'success');
                 }
                 
-                this.showNotification('Menu item updated successfully', 'success');
-            } else {
-                // Add new item
-                itemData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                // Reset form
+                this.resetMenuItemForm();
                 
-                const newItemRef = await this.db.collection('businesses')
-                    .doc(this.businessId)
-                    .collection('menu')
-                    .add(itemData);
+                // Update UI
+                this.renderMenuManagement();
+                this.renderMenu();
                 
-                // Add to local array
-                this.menu.push({
-                    id: newItemRef.id,
-                    ...itemData
-                });
+                // Save to local storage
+                this.saveData('menu', this.menu);
                 
-                this.showNotification('Menu item added successfully', 'success');
+            } catch (error) {
+                console.error('Error saving menu item:', error);
+                this.showNotification('Error saving menu item', 'error');
             }
-            
-            // Reset form
-            this.resetMenuItemForm();
-            
-            // Update UI
-            this.renderMenuManagement();
-            this.renderMenu();
-            
-            // Save to local storage
-            this.saveData('menu', this.menu);
-            
-        } catch (error) {
-            console.error('Error saving menu item:', error);
-            this.showNotification('Error saving menu item', 'error');
-        }
+        }, 'Saving menu item...', button);
     }
     
-    // Delete menu item
-    async deleteMenuItem(itemId) {
+    // Delete menu item with loading
+    async deleteMenuItem(itemId, button) {
         if (!confirm('Are you sure you want to delete this menu item?')) {
             return;
         }
         
-        try {
-            // Delete from Firestore
-            await this.db.collection('businesses')
-                .doc(this.businessId)
-                .collection('menu')
-                .doc(itemId)
-                .delete();
-            
-            // Remove from local array
-            this.menu = this.menu.filter(item => item.id !== itemId);
-            
-            // Update UI
-            this.renderMenuManagement();
-            this.renderMenu();
-            
-            // Save to local storage
-            this.saveData('menu', this.menu);
-            
-            // Reset form if editing this item
-            if (document.getElementById('edit-item-id').value === itemId) {
-                this.resetMenuItemForm();
+        await this.withLoading(async () => {
+            try {
+                // Delete from Firestore
+                await this.db.collection('businesses')
+                    .doc(this.businessId)
+                    .collection('menu')
+                    .doc(itemId)
+                    .delete();
+                
+                // Remove from local array
+                this.menu = this.menu.filter(item => item.id !== itemId);
+                
+                // Update UI
+                this.renderMenuManagement();
+                this.renderMenu();
+                
+                // Save to local storage
+                this.saveData('menu', this.menu);
+                
+                // Reset form if editing this item
+                if (document.getElementById('edit-item-id').value === itemId) {
+                    this.resetMenuItemForm();
+                }
+                
+                this.showNotification('Menu item deleted successfully', 'success');
+                
+            } catch (error) {
+                console.error('Error deleting menu item:', error);
+                this.showNotification('Error deleting menu item', 'error');
             }
-            
-            this.showNotification('Menu item deleted successfully', 'success');
-            
-        } catch (error) {
-            console.error('Error deleting menu item:', error);
-            this.showNotification('Error deleting menu item', 'error');
-        }
+        }, 'Deleting menu item...', button);
     }
     
-    // ================= END MENU MANAGEMENT METHODS =================
+    // ================= AUTH MODALS =================
     
     // Show authentication modal
     showAuthModal() {
@@ -1976,8 +2058,8 @@ class RestaurantOrderSystem {
         }
     }
     
-    // Save initial profile
-    async saveInitialProfile() {
+    // Save initial profile with loading
+    async saveInitialProfile(button) {
         const businessName = document.getElementById('initial-business-name')?.value;
         const businessType = document.getElementById('initial-business-type')?.value;
         const businessPhone = document.getElementById('initial-business-phone')?.value;
@@ -1987,19 +2069,21 @@ class RestaurantOrderSystem {
             return;
         }
         
-        try {
-            await this.saveBusinessProfile({
-                name: businessName,
-                type: businessType,
-                phone: businessPhone,
-                email: this.currentUser.email
-            });
-            
-            this.hideProfileSetupModal();
-        } catch (error) {
-            console.error('Error saving initial profile:', error);
-            this.showNotification('Error saving profile: ' + error.message, 'error');
-        }
+        await this.withLoading(async () => {
+            try {
+                await this.saveBusinessProfile({
+                    name: businessName,
+                    type: businessType,
+                    phone: businessPhone,
+                    email: this.currentUser.email
+                });
+                
+                this.hideProfileSetupModal();
+            } catch (error) {
+                console.error('Error saving initial profile:', error);
+                this.showNotification('Error saving profile: ' + error.message, 'error');
+            }
+        }, 'Setting up business...', button);
     }
     
     // Update UI for logged in user
@@ -2096,109 +2180,4 @@ class RestaurantOrderSystem {
             totalBusinessRevenue.textContent = `₹${totalRevenue}`;
         }
         if (totalBusinessProfit) {
-            const totalProfit = this.completedOrders.reduce((sum, order) => sum + (order.totalProfit || 0), 0);
-            totalBusinessProfit.textContent = `₹${totalProfit}`;
-        }
-    }
-    
-    // Handle business profile form submission
-    async handleBusinessProfileSubmit() {
-        const businessName = document.getElementById('business-name');
-        const businessType = document.getElementById('business-type');
-        const businessDescription = document.getElementById('business-description');
-        const businessPhone = document.getElementById('business-phone');
-        const businessEmail = document.getElementById('business-email');
-        const businessAddress = document.getElementById('business-address');
-        
-        if (!businessName || !businessType || !businessDescription || 
-            !businessPhone || !businessEmail || !businessAddress) return;
-        
-        const formData = {
-            name: businessName.value,
-            type: businessType.value,
-            description: businessDescription.value,
-            phone: businessPhone.value,
-            email: businessEmail.value,
-            address: businessAddress.value
-        };
-        
-        // Handle logo upload if selected
-        const logoFile = document.getElementById('business-logo').files[0];
-        if (logoFile) {
-            try {
-                const logoUrl = await this.uploadLogo(logoFile);
-                formData.logoUrl = logoUrl;
-            } catch (error) {
-                console.error('Error uploading logo:', error);
-                this.showNotification('Error uploading logo', 'error');
-            }
-        }
-        
-        await this.saveBusinessProfile(formData);
-    }
-    
-    // Upload logo to Firebase Storage
-    async uploadLogo(file) {
-        if (!this.businessId) return null;
-        
-        try {
-            const storageRef = this.storage.ref();
-            const logoRef = storageRef.child(`business-logos/${this.businessId}/${file.name}`);
-            
-            await logoRef.put(file);
-            const downloadURL = await logoRef.getDownloadURL();
-            
-            return downloadURL;
-        } catch (error) {
-            console.error('Error uploading logo:', error);
-            throw error;
-        }
-    }
-    
-    // Show notification
-    showNotification(message, type = 'info') {
-        // Create notification element
-        const notification = document.createElement('div');
-        notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-        notification.style.cssText = `
-            top: 80px;
-            right: 20px;
-            z-index: 9999;
-            min-width: 300px;
-            max-width: 400px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        `;
-        
-        notification.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        
-        // Add to page
-        document.body.appendChild(notification);
-        
-        // Remove after 3 seconds
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.remove();
-            }
-        }, 3000);
-    }
-    
-    // Analytics update (simplified)
-    updateAnalytics() {
-        console.log('Analytics update called');
-        // Implement analytics charts here
-        this.showNotification('Analytics will be available in the next update', 'info');
-    }
-}
-
-// Initialize the system when page loads
-let restaurantSystem;
-
-document.addEventListener('DOMContentLoaded', () => {
-    restaurantSystem = new RestaurantOrderSystem();
-    
-    // Make system accessible globally for inline event handlers
-    window.restaurantSystem = restaurantSystem;
-});
+            const

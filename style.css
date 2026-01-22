@@ -22,6 +22,16 @@ body {
     color: var(--dark-color);
     padding-top: 70px;
     min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Fix for Bootstrap spinner animation */
+@keyframes spinner-border {
+    to { transform: rotate(360deg); }
+}
+
+.spinner-border {
+    animation: spinner-border .75s linear infinite;
 }
 
 /* Loading Overlay */
@@ -31,7 +41,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(255, 255, 255, 0.9);
+    background-color: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(5px);
     display: none;
     justify-content: center;
@@ -42,23 +52,29 @@ body {
 
 .loading-overlay.show {
     display: flex;
-    animation: fadeIn 0.3s;
+    animation: fadeIn 0.3s ease;
 }
 
 .spinner-container {
     text-align: center;
+    padding: 30px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
 }
 
 .loading-text {
     color: var(--primary-color);
     font-weight: 600;
     font-size: 1.1rem;
+    margin-top: 15px;
 }
 
 /* Button Loading State */
 .btn-loading {
     position: relative;
     color: transparent !important;
+    pointer-events: none;
 }
 
 .btn-loading::after {
@@ -80,6 +96,11 @@ body {
     to {
         transform: rotate(360deg);
     }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 /* Spinner for small buttons */
@@ -124,6 +145,7 @@ body {
     transition: all 0.3s;
     display: flex;
     align-items: center;
+    cursor: pointer;
 }
 
 .nav-link:hover, .nav-link.active {
@@ -164,21 +186,19 @@ body {
     padding: 15px;
     max-width: 1400px;
     margin: 0 auto;
+    width: 100%;
 }
 
-/* Tab Content */
+/* Tab Content - FIXED */
 .tab-content {
     display: none;
+    animation: fadeIn 0.3s ease;
+    width: 100%;
+    min-height: calc(100vh - 100px);
 }
 
 .tab-content.active {
-    display: block;
-    animation: fadeIn 0.3s;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    display: block !important;
 }
 
 /* Cards */
@@ -188,6 +208,7 @@ body {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
     margin-bottom: 20px;
     overflow: hidden;
+    width: 100%;
 }
 
 .card-header {
@@ -211,6 +232,7 @@ body {
 
 .menu-category {
     margin-bottom: 25px;
+    width: 100%;
 }
 
 .menu-category h6 {
@@ -233,6 +255,7 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    min-height: 120px;
 }
 
 .menu-item-card:hover {
@@ -282,6 +305,7 @@ body {
     font-weight: bold;
     font-size: 1.1rem;
     transition: all 0.3s;
+    cursor: pointer;
 }
 
 .quantity-btn:hover:not(:disabled) {
@@ -302,6 +326,7 @@ body {
     padding: 6px;
     font-weight: bold;
     background: white;
+    font-size: 1rem;
 }
 
 .quantity-input:focus {
@@ -314,11 +339,13 @@ body {
 .table-responsive {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    width: 100%;
 }
 
 .table {
     margin-bottom: 0;
     font-size: 0.95rem;
+    width: 100%;
 }
 
 .table thead th {
@@ -481,6 +508,7 @@ body {
     padding: 10px 20px;
     transition: all 0.3s;
     border: none;
+    cursor: pointer;
 }
 
 .btn-primary {
@@ -551,6 +579,7 @@ body {
     border: 2px solid #e1e5e9;
     font-size: 1rem;
     transition: all 0.3s;
+    width: 100%;
 }
 
 .form-control:focus, .form-select:focus {
@@ -690,6 +719,8 @@ body {
     padding: 5px;
     background: white;
     transition: all 0.3s;
+    max-width: 150px;
+    height: auto;
 }
 
 #logo-preview img:hover {
@@ -835,6 +866,29 @@ body {
     border-width: 0.15em;
 }
 
+/* Notification Styles */
+.notification {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 9999;
+    min-width: 300px;
+    max-width: 400px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     body {
@@ -870,6 +924,7 @@ body {
     .menu-item-card {
         padding: 12px;
         margin: 5px;
+        min-height: 110px;
     }
     
     .menu-item-name {
@@ -970,6 +1025,12 @@ body {
         font-size: 0.85rem;
         min-width: 80px;
     }
+    
+    /* Fix tab content on mobile */
+    .tab-content {
+        min-height: auto;
+        padding-bottom: 20px;
+    }
 }
 
 @media (max-width: 576px) {
@@ -1010,13 +1071,24 @@ body {
     .d-flex.gap-2 {
         gap: 4px !important;
     }
+    
+    /* Fix notification on mobile */
+    .notification {
+        min-width: 280px;
+        max-width: 300px;
+        right: 10px;
+        left: 10px;
+        margin: 0 auto;
+    }
 }
 
 /* Print Styles */
 @media print {
     .navbar,
     .btn,
-    .card-header .btn {
+    .card-header .btn,
+    .loading-overlay,
+    .notification {
         display: none !important;
     }
     
@@ -1044,4 +1116,34 @@ body {
 
 .loading {
     animation: pulse 1.5s infinite;
+}
+
+/* Grid layout fixes */
+.row {
+    margin-left: -10px;
+    margin-right: -10px;
+}
+
+.row > [class*="col-"] {
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+/* Ensure proper tab display */
+#take-order.active,
+#ongoing-orders.active,
+#completed-orders.active,
+#menu-management.active,
+#analytics.active,
+#profile.active {
+    display: block !important;
+}
+
+/* Fix for Bootstrap modal backdrop */
+.modal-backdrop {
+    z-index: 9999;
+}
+
+.modal {
+    z-index: 10000;
 }

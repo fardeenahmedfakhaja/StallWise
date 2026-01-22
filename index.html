@@ -1,645 +1,118 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Restaurant POS System</title>
-    
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="style.css">
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body>
-    <!-- Loading Overlay -->
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="spinner-container">
-            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <p class="loading-text mt-3">Loading...</p>
-        </div>
-    </div>
+<!-- Add this modal HTML to your existing HTML file, just before the closing </body> tag -->
 
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="#">
-                <i class="bi bi-cup-hot-fill"></i>
-                <span class="brand-name ms-2">Restaurant POS</span>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="#" data-tab="new-order">
-                            <i class="bi bi-plus-circle"></i>
-                            <span class="nav-text">New Order</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" data-tab="ongoing-orders">
-                            <i class="bi bi-clock-history"></i>
-                            <span class="nav-text">Ongoing Orders</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" data-tab="completed-orders">
-                            <i class="bi bi-check-circle"></i>
-                            <span class="nav-text">Completed Orders</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" data-tab="analytics">
-                            <i class="bi bi-bar-chart"></i>
-                            <span class="nav-text">Analytics</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" data-tab="profile">
-                            <i class="bi bi-person-circle"></i>
-                            <span class="nav-text">Profile</span>
-                        </a>
-                    </li>
-                </ul>
+<!-- Order Details Modal -->
+<div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-labelledby="orderDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="orderDetailsModalLabel">Order Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-        </div>
-    </nav>
-
-    <!-- Main Content -->
-    <div class="main-content">
-        <!-- New Order Tab -->
-        <div id="new-order" class="tab-content active">
-            <div class="row">
-                <!-- Menu Items -->
-                <div class="col-lg-8">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">Menu Items</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-4 mb-3">
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="bi bi-search"></i></span>
-                                        <input type="text" class="form-control" id="menu-search" placeholder="Search menu items...">
-                                    </div>
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <select class="form-select" id="category-filter">
-                                        <option value="all">All Categories</option>
-                                        <option value="starters">Starters</option>
-                                        <option value="main-course">Main Course</option>
-                                        <option value="desserts">Desserts</option>
-                                        <option value="beverages">Beverages</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <button class="btn btn-outline-primary w-100" id="clear-order-btn">
-                                        <i class="bi bi-x-circle"></i> Clear Order
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div id="menu-items-container">
-                                <!-- Menu items will be loaded here -->
-                            </div>
-                        </div>
+            <div class="modal-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6 class="text-primary mb-2">Order Information</h6>
+                        <ul class="order-details-list">
+                            <li>
+                                <span class="order-detail-label">Order ID:</span>
+                                <span class="order-detail-value" id="modalOrderId">#0001</span>
+                            </li>
+                            <li>
+                                <span class="order-detail-label">Customer:</span>
+                                <span class="order-detail-value" id="modalCustomerName">Walk-in Customer</span>
+                            </li>
+                            <li>
+                                <span class="order-detail-label">Order Type:</span>
+                                <span class="order-detail-value" id="modalOrderType">Dine-in</span>
+                            </li>
+                            <li>
+                                <span class="order-detail-label">Status:</span>
+                                <span class="order-detail-value">
+                                    <span class="badge bg-warning" id="modalOrderStatus">Preparing</span>
+                                </span>
+                            </li>
+                        </ul>
                     </div>
-                </div>
-
-                <!-- Order Summary -->
-                <div class="col-lg-4">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">Order Summary</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="order-summary">
-                                <div class="text-center mb-4">
-                                    <div class="order-number" id="order-id-display">#001</div>
-                                    <small class="text-muted">Order ID</small>
-                                </div>
-                                
-                                <div class="summary-details">
-                                    <div class="mb-3">
-                                        <label class="form-label">Customer Name</label>
-                                        <input type="text" class="form-control" id="customer-name" placeholder="Walk-in customer">
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label class="form-label">Order Type</label>
-                                        <select class="form-select" id="order-type">
-                                            <option value="dinein">Dine-in</option>
-                                            <option value="takeaway">Takeaway</option>
-                                            <option value="delivery">Delivery</option>
-                                        </select>
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label class="form-label">Special Instructions</label>
-                                        <textarea class="form-control" id="special-instructions" rows="2" placeholder="Any special requests..."></textarea>
-                                    </div>
-                                    
-                                    <h6 class="mt-4 mb-3">Selected Items</h6>
-                                    <div class="summary-items" id="order-summary-items">
-                                        <div class="text-center py-3">
-                                            <p class="text-muted mb-0">No items selected</p>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="mt-4">
-                                        <div class="d-flex justify-content-between mb-2">
-                                            <span>Subtotal:</span>
-                                            <span id="order-subtotal">₹0.00</span>
-                                        </div>
-                                        <div class="d-flex justify-content-between mb-2">
-                                            <span>Tax (5%):</span>
-                                            <span id="order-tax">₹0.00</span>
-                                        </div>
-                                        <div class="d-flex justify-content-between mb-2">
-                                            <span>Discount:</span>
-                                            <span id="order-discount">₹0.00</span>
-                                        </div>
-                                        <div class="total-row d-flex justify-content-between">
-                                            <strong>Total:</strong>
-                                            <strong id="order-total">₹0.00</strong>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="mt-4">
-                                        <label class="form-label">Payment Method</label>
-                                        <select class="form-select mb-3" id="payment-method">
-                                            <option value="cash">Cash</option>
-                                            <option value="card">Card</option>
-                                            <option value="upi">UPI</option>
-                                        </select>
-                                        
-                                        <button class="btn btn-success w-100 btn-lg" id="place-order-btn">
-                                            <i class="bi bi-check-lg"></i> Place Order
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Ongoing Orders Tab -->
-        <div id="ongoing-orders" class="tab-content">
-            <div class="row">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="card-title mb-0">Ongoing Orders</h5>
-                            <button class="btn btn-outline-primary btn-sm" id="refresh-orders-btn">
-                                <i class="bi bi-arrow-clockwise"></i> Refresh
-                            </button>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-hover" id="ongoing-orders-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Order ID</th>
-                                            <th>Customer</th>
-                                            <th>Order Type</th>
-                                            <th>Items</th>
-                                            <th>Total</th>
-                                            <th>Status</th>
-                                            <th>Time</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="ongoing-orders-body">
-                                        <!-- Ongoing orders will be loaded here -->
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div class="text-center py-5" id="no-ongoing-orders" style="display: none;">
-                                <i class="bi bi-clock display-1 text-muted"></i>
-                                <h5 class="mt-3 text-muted">No Ongoing Orders</h5>
-                                <p class="text-muted">All orders have been completed</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Completed Orders Tab -->
-        <div id="completed-orders" class="tab-content">
-            <div class="row">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">Completed Orders</h5>
-                        </div>
-                        <div class="card-body">
-                            <!-- Date Range Filter -->
-                            <div class="analytics-filter mb-4">
-                                <h6 class="filter-title">Filter by Date Range</h6>
-                                <div class="row align-items-center">
-                                    <div class="col-md-6 mb-3 mb-md-0">
-                                        <div class="date-range-picker">
-                                            <input type="date" id="completed-start-date" class="form-control">
-                                            <span class="date-range-divider">to</span>
-                                            <input type="date" id="completed-end-date" class="form-control">
-                                            <button type="button" id="apply-completed-filter" class="btn btn-primary date-range-apply-btn">
-                                                Apply Filter
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="d-flex flex-wrap gap-2">
-                                            <button type="button" class="btn btn-outline-primary btn-sm quick-date-range" data-range="today">
-                                                Today
-                                            </button>
-                                            <button type="button" class="btn btn-outline-primary btn-sm quick-date-range" data-range="yesterday">
-                                                Yesterday
-                                            </button>
-                                            <button type="button" class="btn btn-outline-primary btn-sm quick-date-range" data-range="week">
-                                                Last 7 Days
-                                            </button>
-                                            <button type="button" class="btn btn-outline-primary btn-sm quick-date-range" data-range="month">
-                                                Last 30 Days
-                                            </button>
-                                            <button type="button" class="btn btn-outline-primary btn-sm quick-date-range" data-range="year">
-                                                Last Year
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="table-responsive">
-                                <table class="table table-hover" id="completed-orders-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Order ID</th>
-                                            <th>Customer</th>
-                                            <th>Order Type</th>
-                                            <th>Date</th>
-                                            <th>Total</th>
-                                            <th>Payment</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="completed-orders-body">
-                                        <!-- Completed orders will be loaded here -->
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div class="text-center py-5" id="no-completed-orders" style="display: none;">
-                                <i class="bi bi-check-circle display-1 text-muted"></i>
-                                <h5 class="mt-3 text-muted">No Completed Orders</h5>
-                                <p class="text-muted">Complete some orders to see them here</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Analytics Tab -->
-        <div id="analytics" class="tab-content">
-            <div class="row">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">Analytics Dashboard</h5>
-                        </div>
-                        <div class="card-body">
-                            <!-- Date Range Filter -->
-                            <div class="analytics-filter mb-4">
-                                <h6 class="filter-title">Filter by Date Range</h6>
-                                <div class="row align-items-center">
-                                    <div class="col-md-6 mb-3 mb-md-0">
-                                        <div class="date-range-picker">
-                                            <input type="date" id="analytics-start-date" class="form-control">
-                                            <span class="date-range-divider">to</span>
-                                            <input type="date" id="analytics-end-date" class="form-control">
-                                            <button type="button" id="apply-analytics-filter" class="btn btn-primary date-range-apply-btn">
-                                                Apply Filter
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="d-flex flex-wrap gap-2">
-                                            <button type="button" class="btn btn-outline-primary btn-sm quick-date-range" data-range="today">
-                                                Today
-                                            </button>
-                                            <button type="button" class="btn btn-outline-primary btn-sm quick-date-range" data-range="yesterday">
-                                                Yesterday
-                                            </button>
-                                            <button type="button" class="btn btn-outline-primary btn-sm quick-date-range" data-range="week">
-                                                Last 7 Days
-                                            </button>
-                                            <button type="button" class="btn btn-outline-primary btn-sm quick-date-range" data-range="month">
-                                                Last 30 Days
-                                            </button>
-                                            <button type="button" class="btn btn-outline-primary btn-sm quick-date-range" data-range="year">
-                                                Last Year
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Stats Cards -->
-                            <div class="row mb-4">
-                                <div class="col-md-3">
-                                    <div class="summary-box">
-                                        <h6>Total Revenue</h6>
-                                        <h5 class="text-primary" id="total-revenue">₹0.00</h5>
-                                        <small>Today</small>
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="summary-box">
-                                        <h6>Total Orders</h6>
-                                        <h5 class="text-success" id="total-orders">0</h5>
-                                        <small>Today</small>
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="summary-box">
-                                        <h6>Average Order Value</h6>
-                                        <h5 class="text-warning" id="average-order-value">₹0.00</h5>
-                                        <small>Today</small>
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="summary-box">
-                                        <h6>Most Popular Item</h6>
-                                        <h5 class="text-info" id="most-popular-item">-</h5>
-                                        <small>Today</small>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Charts -->
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="chart-container">
-                                        <h6 class="mb-3">Revenue Trend</h6>
-                                        <canvas id="revenue-chart"></canvas>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="chart-container">
-                                        <h6 class="mb-3">Order Types Distribution</h6>
-                                        <canvas id="order-type-chart"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Recent Orders Table -->
-                            <div class="row mt-4">
-                                <div class="col-12">
-                                    <div class="card">
-                                        <div class="card-header">
-                                            <h6 class="mb-0">Recent Orders</h6>
-                                        </div>
-                                        <div class="card-body">
-                                            <div class="table-responsive">
-                                                <table class="table table-sm table-hover">
-                                                    <thead>
-                                                        <tr>
-                                                            <th>Order ID</th>
-                                                            <th>Customer</th>
-                                                            <th>Amount</th>
-                                                            <th>Status</th>
-                                                            <th>Time</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody id="recent-orders-body">
-                                                        <!-- Recent orders will be loaded here -->
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Profile Tab -->
-        <div id="profile" class="tab-content">
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">Profile Information</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="user-info-card">
-                                <img src="https://via.placeholder.com/80" alt="User" class="user-avatar">
-                                <h5 class="user-name">Restaurant Admin</h5>
-                                <p class="user-email">admin@restaurant.com</p>
-                                <p class="mb-0">
-                                    <i class="bi bi-geo-alt"></i> 
-                                    <small>123 Main Street, City</small>
-                                </p>
-                            </div>
-                            
-                            <div class="stats-grid mt-3">
-                                <div class="stat-item">
-                                    <div class="stat-value" id="total-business-orders">0</div>
-                                    <div class="stat-label">Total Orders</div>
-                                </div>
-                                <div class="stat-item">
-                                    <div class="stat-value" id="total-business-revenue">₹0</div>
-                                    <div class="stat-label">Revenue</div>
-                                </div>
-                                <div class="stat-item">
-                                    <div class="stat-value" id="total-business-profit">₹0</div>
-                                    <div class="stat-label">Profit</div>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="col-md-6">
+                        <h6 class="text-primary mb-2">Timing Information</h6>
+                        <ul class="order-details-list">
+                            <li>
+                                <span class="order-detail-label">Order Time:</span>
+                                <span class="order-detail-value" id="modalOrderTime">10:30 AM</span>
+                            </li>
+                            <li>
+                                <span class="order-detail-label">Date:</span>
+                                <span class="order-detail-value" id="modalOrderDate">2024-01-23</span>
+                            </li>
+                            <li>
+                                <span class="order-detail-label">Estimated Ready:</span>
+                                <span class="order-detail-value" id="modalEstimatedTime">10:45 AM</span>
+                            </li>
+                        </ul>
                     </div>
                 </div>
                 
-                <div class="col-md-8">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">Business Profile</h5>
-                        </div>
-                        <div class="card-body">
-                            <form id="business-profile-form">
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Restaurant Name</label>
-                                        <input type="text" class="form-control" value="My Restaurant">
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Phone Number</label>
-                                        <input type="tel" class="form-control" value="+91 9876543210">
-                                    </div>
-                                    <div class="col-12 mb-3">
-                                        <label class="form-label">Address</label>
-                                        <textarea class="form-control" rows="2">123 Main Street, City, State 123456</textarea>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">GST Number</label>
-                                        <input type="text" class="form-control" value="27ABCDE1234F1Z5">
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Tax Rate (%)</label>
-                                        <input type="number" class="form-control" value="5" step="0.1">
-                                    </div>
-                                    <div class="col-12 mb-3">
-                                        <label class="form-label">Restaurant Logo</label>
-                                        <input type="file" class="form-control" accept="image/*">
-                                        <div class="mt-2" id="logo-preview">
-                                            <img src="https://via.placeholder.com/100" alt="Logo" class="img-thumbnail" style="width: 100px;">
-                                        </div>
-                                    </div>
-                                    <div class="col-12">
-                                        <button type="submit" class="btn btn-primary">Save Changes</button>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
+                <h6 class="text-primary mb-3">Order Items</h6>
+                <div class="table-responsive">
+                    <table class="table order-items-table">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Quantity</th>
+                                <th>Price</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalOrderItems">
+                            <!-- Order items will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <h6 class="text-primary mb-2">Payment Information</h6>
+                        <ul class="order-details-list">
+                            <li>
+                                <span class="order-detail-label">Payment Method:</span>
+                                <span class="order-detail-value" id="modalPaymentMethod">Cash</span>
+                            </li>
+                            <li>
+                                <span class="order-detail-label">Payment Status:</span>
+                                <span class="order-detail-value">
+                                    <span class="badge bg-success" id="modalPaymentStatus">Paid</span>
+                                </span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-primary mb-2">Order Summary</h6>
+                        <ul class="order-details-list">
+                            <li>
+                                <span class="order-detail-label">Subtotal:</span>
+                                <span class="order-detail-value" id="modalSubtotal">₹0.00</span>
+                            </li>
+                            <li>
+                                <span class="order-detail-label">Tax:</span>
+                                <span class="order-detail-value" id="modalTax">₹0.00</span>
+                            </li>
+                            <li class="total-row">
+                                <span class="order-detail-label fw-bold">Total:</span>
+                                <span class="order-detail-value fw-bold" id="modalTotal">₹0.00</span>
+                            </li>
+                        </ul>
                     </div>
                 </div>
+                
+                <div class="mt-4">
+                    <h6 class="text-primary mb-2">Special Instructions</h6>
+                    <p class="text-muted" id="modalSpecialInstructions">No special instructions</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="markAsCompleteBtn">Mark as Complete</button>
             </div>
         </div>
     </div>
-
-    <!-- Order Details Modal -->
-    <div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-labelledby="orderDetailsModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="orderDetailsModalLabel">Order Details</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="row mb-4">
-                        <div class="col-md-6">
-                            <h6 class="text-primary mb-2">Order Information</h6>
-                            <ul class="order-details-list">
-                                <li>
-                                    <span class="order-detail-label">Order ID:</span>
-                                    <span class="order-detail-value" id="modalOrderId">#0001</span>
-                                </li>
-                                <li>
-                                    <span class="order-detail-label">Customer:</span>
-                                    <span class="order-detail-value" id="modalCustomerName">Walk-in Customer</span>
-                                </li>
-                                <li>
-                                    <span class="order-detail-label">Order Type:</span>
-                                    <span class="order-detail-value" id="modalOrderType">Dine-in</span>
-                                </li>
-                                <li>
-                                    <span class="order-detail-label">Status:</span>
-                                    <span class="order-detail-value">
-                                        <span class="badge bg-warning" id="modalOrderStatus">Preparing</span>
-                                    </span>
-                                </li>
-                            </ul>
-                        </div>
-                        <div class="col-md-6">
-                            <h6 class="text-primary mb-2">Timing Information</h6>
-                            <ul class="order-details-list">
-                                <li>
-                                    <span class="order-detail-label">Order Time:</span>
-                                    <span class="order-detail-value" id="modalOrderTime">10:30 AM</span>
-                                </li>
-                                <li>
-                                    <span class="order-detail-label">Date:</span>
-                                    <span class="order-detail-value" id="modalOrderDate">2024-01-23</span>
-                                </li>
-                                <li>
-                                    <span class="order-detail-label">Estimated Ready:</span>
-                                    <span class="order-detail-value" id="modalEstimatedTime">10:45 AM</span>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                    
-                    <h6 class="text-primary mb-3">Order Items</h6>
-                    <div class="table-responsive">
-                        <table class="table order-items-table">
-                            <thead>
-                                <tr>
-                                    <th>Item</th>
-                                    <th>Quantity</th>
-                                    <th>Price</th>
-                                    <th>Total</th>
-                                </tr>
-                            </thead>
-                            <tbody id="modalOrderItems">
-                                <!-- Order items will be populated here -->
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <div class="row mt-4">
-                        <div class="col-md-6">
-                            <h6 class="text-primary mb-2">Payment Information</h6>
-                            <ul class="order-details-list">
-                                <li>
-                                    <span class="order-detail-label">Payment Method:</span>
-                                    <span class="order-detail-value" id="modalPaymentMethod">Cash</span>
-                                </li>
-                                <li>
-                                    <span class="order-detail-label">Payment Status:</span>
-                                    <span class="order-detail-value">
-                                        <span class="badge bg-success" id="modalPaymentStatus">Paid</span>
-                                    </span>
-                                </li>
-                            </ul>
-                        </div>
-                        <div class="col-md-6">
-                            <h6 class="text-primary mb-2">Order Summary</h6>
-                            <ul class="order-details-list">
-                                <li>
-                                    <span class="order-detail-label">Subtotal:</span>
-                                    <span class="order-detail-value" id="modalSubtotal">₹0.00</span>
-                                </li>
-                                <li>
-                                    <span class="order-detail-label">Tax:</span>
-                                    <span class="order-detail-value" id="modalTax">₹0.00</span>
-                                </li>
-                                <li class="total-row">
-                                    <span class="order-detail-label fw-bold">Total:</span>
-                                    <span class="order-detail-value fw-bold" id="modalTotal">₹0.00</span>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                    
-                    <div class="mt-4">
-                        <h6 class="text-primary mb-2">Special Instructions</h6>
-                        <p class="text-muted" id="modalSpecialInstructions">No special instructions</p>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" id="markAsCompleteBtn">Mark as Complete</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Bootstrap JS Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Custom JavaScript -->
-    <script src="script.js"></script>
-</body>
-</html>
+</div>

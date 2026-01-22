@@ -49,7 +49,7 @@ class RestaurantOrderSystem {
         return []; // Start with empty menu
     }
     
-    // Default categories - EMPTY (now with favorite property)
+    // Default categories - EMPTY
     getDefaultCategories() {
         return []; // Start with empty categories
     }
@@ -142,35 +142,13 @@ class RestaurantOrderSystem {
             selectedTab.classList.add('active');
         }
         
-        // Update menu tab name based on business type
-        this.updateMenuTabName();
-        
         // Load tab-specific data
         this.loadTabData(tabId);
-    }
-    
-    // Update menu tab name based on business type
-    updateMenuTabName() {
-        const businessType = this.businessData?.type || 'restaurant';
-        const isInventory = businessType === 'other' || businessType === 'event';
-        const menuTabLink = document.querySelector('.nav-link[data-tab="menu-management"] .nav-text');
-        const menuHeader = document.querySelector('#menu-management .card-title');
-        
-        if (isInventory) {
-            if (menuTabLink) menuTabLink.textContent = 'Inventory';
-            if (menuHeader) menuHeader.innerHTML = '<i class="fas fa-edit me-2"></i>Inventory Management';
-        } else {
-            if (menuTabLink) menuTabLink.textContent = 'Menu';
-            if (menuHeader) menuHeader.innerHTML = '<i class="fas fa-edit me-2"></i>Menu Management';
-        }
     }
     
     // Load data for specific tab
     loadTabData(tabId) {
         switch(tabId) {
-            case 'take-order':
-                this.updateQuickActions();
-                break;
             case 'ongoing-orders':
                 this.renderOngoingOrders();
                 break;
@@ -341,26 +319,9 @@ class RestaurantOrderSystem {
                 const businessDoc = await this.db.collection('businesses').doc(this.businessId).get();
                 if (businessDoc.exists) {
                     this.businessData = businessDoc.data();
-                    
-                    // Handle categories format (support both old and new)
-                    let categoriesData = this.businessData.categories || [];
-                    if (categoriesData.length > 0 && typeof categoriesData[0] === 'string') {
-                        // Convert old string format to new object format
-                        categoriesData = categoriesData.map(name => ({ 
-                            name, 
-                            favorite: false 
-                        }));
-                        
-                        // Update in Firestore
-                        await this.db.collection('businesses').doc(this.businessId).update({
-                            categories: categoriesData
-                        });
-                    }
-                    
-                    this.categories = categoriesData;
+                    this.categories = this.businessData.categories || [];
                     this.nextOrderId = this.businessData.nextOrderId || 1001;
                     this.updateNextOrderNumber();
-                    this.updateMenuTabName();
                 }
                 
                 // Load menu items
@@ -391,7 +352,6 @@ class RestaurantOrderSystem {
                 
                 // Update UI
                 this.renderMenu();
-                this.updateQuickActions();
                 this.renderOngoingOrders();
                 this.renderCompletedOrders();
                 this.renderMenuManagement();
@@ -419,9 +379,7 @@ class RestaurantOrderSystem {
                 this.menu = menuSnapshot.docs.map(doc => ({ 
                     id: doc.id, 
                     ...doc.data(),
-                    cost: doc.data().cost || 0,
-                    tax: doc.data().tax || 0,
-                    outOfStock: doc.data().outOfStock || false
+                    cost: doc.data().cost || 0
                 }));
                 
                 // Save to local storage as backup
@@ -624,93 +582,27 @@ class RestaurantOrderSystem {
         });
     }
     
-    // Update quick actions based on favorite categories
-    updateQuickActions() {
-        const quickActionsContainer = document.querySelector('#take-order .row.g-2');
-        if (!quickActionsContainer) return;
-        
-        // Clear existing quick actions except the first 4 default ones
-        const defaultButtons = ['quick-drinks', 'quick-desserts', 'quick-appetizers', 'quick-wraps'];
-        const existingButtons = quickActionsContainer.querySelectorAll('button[id^="quick-"]');
-        
-        existingButtons.forEach(button => {
-            if (!defaultButtons.includes(button.id)) {
-                button.remove();
-            }
-        });
-        
-        // Get favorite categories
-        const favoriteCategories = this.categories.filter(cat => cat.favorite);
-        
-        // Add favorite categories as quick actions
-        favoriteCategories.forEach((category, index) => {
-            // Skip if we already have 4 buttons (including defaults)
-            if (index >= 4) return;
-            
-            const col = document.createElement('div');
-            col.className = 'col-6';
-            
-            // Get appropriate icon based on category name
-            const icon = this.getCategoryIcon(category.name);
-            
-            col.innerHTML = `
-                <button class="btn btn-outline-info w-100 quick-category-btn" 
-                        data-category="${category.name}">
-                    <i class="fas fa-${icon} me-1"></i> ${category.name}
-                </button>
-            `;
-            
-            // Insert after default buttons
-            quickActionsContainer.appendChild(col);
-            
-            // Add event listener
-            col.querySelector('.quick-category-btn').addEventListener('click', (e) => {
-                const categoryName = e.currentTarget.getAttribute('data-category');
-                this.showCategory(categoryName);
-            });
-        });
-    }
-    
-    // Get appropriate icon for category
-    getCategoryIcon(categoryName) {
-        const lowerCategory = categoryName.toLowerCase();
-        if (lowerCategory.includes('drink') || lowerCategory.includes('beverage')) return 'wine-glass';
-        if (lowerCategory.includes('dessert') || lowerCategory.includes('sweet')) return 'ice-cream';
-        if (lowerCategory.includes('appetizer') || lowerCategory.includes('starter')) return 'apple-alt';
-        if (lowerCategory.includes('wrap') || lowerCategory.includes('roll')) return 'bread-slice';
-        if (lowerCategory.includes('burger') || lowerCategory.includes('sandwich')) return 'hamburger';
-        if (lowerCategory.includes('pizza') || lowerCategory.includes('pie')) return 'pizza-slice';
-        if (lowerCategory.includes('salad') || lowerCategory.includes('bowl')) return 'leaf';
-        if (lowerCategory.includes('soup') || lowerCategory.includes('broth')) return 'bowl';
-        if (lowerCategory.includes('main') || lowerCategory.includes('course')) return 'utensils';
-        if (lowerCategory.includes('side') || lowerCategory.includes('extra')) return 'plate';
-        return 'tag'; // default icon
-    }
-    
-    // Render menu items (filter out out-of-stock items)
+    // Render menu items
     renderMenu(searchTerm = '') {
         const container = document.getElementById('menu-items-container');
         if (!container) return;
         
         container.innerHTML = '';
         
-        // Filter out out-of-stock items
-        const availableItems = this.menu.filter(item => !item.outOfStock);
-        
-        if (availableItems.length === 0) {
+        if (this.menu.length === 0) {
             container.innerHTML = `
                 <div class="col-12 text-center py-5">
                     <i class="fas fa-utensils fa-3x text-muted mb-3"></i>
-                    <h5 class="text-muted">No Menu Items Available</h5>
+                    <h5 class="text-muted">No Menu Items</h5>
                     <p class="text-muted">Add items in the Menu Management tab</p>
                 </div>
             `;
             return;
         }
         
-        // Group available items by category
+        // Group items by category
         const categories = {};
-        availableItems.forEach(item => {
+        this.menu.forEach(item => {
             if (!categories[item.category]) {
                 categories[item.category] = [];
             }
@@ -718,28 +610,26 @@ class RestaurantOrderSystem {
         });
         
         // Create category sections
-        this.categories.forEach(category => {
-            const categoryName = category.name || category;
+        this.categories.forEach(categoryName => {
             const items = categories[categoryName] || [];
             
             // Filter by search term
             const filteredItems = items.filter(item => 
                 searchTerm === '' || 
                 item.name.toLowerCase().includes(searchTerm) ||
-                categoryName.toLowerCase().includes(searchTerm)
+                item.category.toLowerCase().includes(searchTerm)
             );
             
             if (filteredItems.length === 0 && searchTerm !== '') return;
             
             const categoryDiv = document.createElement('div');
             categoryDiv.className = 'menu-category';
-            categoryDiv.id = `category-${categoryName.replace(/\s+/g, '-')}`;
             categoryDiv.innerHTML = `
                 <h6>${categoryName}</h6>
-                <div class="row" id="items-${categoryName.replace(/\s+/g, '-')}"></div>
+                <div class="row" id="category-${categoryName.replace(/\s+/g, '-')}"></div>
             `;
             
-            const itemsContainer = categoryDiv.querySelector(`#items-${categoryName.replace(/\s+/g, '-')}`);
+            const itemsContainer = categoryDiv.querySelector(`#category-${categoryName.replace(/\s+/g, '-')}`);
             
             filteredItems.forEach(item => {
                 const colSize = window.innerWidth <= 576 ? 'col-6' : 'col-md-4 col-lg-3';
@@ -756,7 +646,7 @@ class RestaurantOrderSystem {
                          data-item-id="${item.id}">
                         <div>
                             <div class="menu-item-name">${item.name}</div>
-                            <div class="menu-item-price">₹${item.price}${item.tax > 0 ? ` (+${item.tax}% tax)` : ''}</div>
+                            <div class="menu-item-price">₹${item.price}</div>
                         </div>
                         <div class="menu-item-quantity">
                             <button class="quantity-btn minus-btn" data-item-id="${item.id}">
@@ -788,7 +678,7 @@ class RestaurantOrderSystem {
         });
     }
     
-    // Adjust item quantity with tax calculation
+    // Adjust item quantity
     adjustQuantity(itemId, change) {
         const input = document.getElementById(`qty-${itemId}`);
         if (!input) return;
@@ -802,50 +692,31 @@ class RestaurantOrderSystem {
         this.setQuantity(itemId, newValue);
     }
     
-    // Set item quantity with tax calculation
+    // Set item quantity
     setQuantity(itemId, quantity) {
         // Find the item in current order
         const existingItemIndex = this.currentOrder.items.findIndex(item => item.id === itemId);
-        const menuItem = this.menu.find(item => item.id === itemId);
-        
-        if (!menuItem) return;
         
         if (quantity > 0) {
-            // Calculate tax amount
-            const price = menuItem.price;
-            const taxRate = menuItem.tax || 0;
-            const taxAmount = (price * quantity * taxRate) / 100;
-            const subtotal = price * quantity;
-            const total = subtotal + taxAmount;
+            const menuItem = this.menu.find(item => item.id === itemId);
             
             if (existingItemIndex >= 0) {
                 // Update existing item
-                this.currentOrder.items[existingItemIndex] = {
-                    ...this.currentOrder.items[existingItemIndex],
-                    quantity: quantity,
-                    price: price,
-                    cost: menuItem.cost,
-                    tax: taxRate,
-                    taxAmount: taxAmount,
-                    subtotal: subtotal,
-                    total: total,
-                    totalCost: quantity * menuItem.cost,
-                    profit: total - (quantity * menuItem.cost)
-                };
+                this.currentOrder.items[existingItemIndex].quantity = quantity;
+                this.currentOrder.items[existingItemIndex].total = quantity * menuItem.price;
+                this.currentOrder.items[existingItemIndex].totalCost = quantity * menuItem.cost;
+                this.currentOrder.items[existingItemIndex].profit = quantity * (menuItem.price - menuItem.cost);
             } else {
                 // Add new item
                 this.currentOrder.items.push({
                     id: itemId,
                     name: menuItem.name,
-                    price: price,
+                    price: menuItem.price,
                     cost: menuItem.cost,
                     quantity: quantity,
-                    tax: taxRate,
-                    taxAmount: taxAmount,
-                    subtotal: subtotal,
-                    total: total,
+                    total: quantity * menuItem.price,
                     totalCost: quantity * menuItem.cost,
-                    profit: total - (quantity * menuItem.cost)
+                    profit: quantity * (menuItem.price - menuItem.cost)
                 });
             }
         } else if (existingItemIndex >= 0) {
@@ -872,7 +743,7 @@ class RestaurantOrderSystem {
         }
     }
     
-    // Update selected items table with tax information
+    // Update selected items table
     updateSelectedItemsTable() {
         const tbody = document.getElementById('selected-items-body');
         if (!tbody) return;
@@ -880,7 +751,7 @@ class RestaurantOrderSystem {
         if (this.currentOrder.items.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="6" class="text-center text-muted py-4">
+                    <td colspan="5" class="text-center text-muted py-4">
                         No items selected
                     </td>
                 </tr>
@@ -892,18 +763,14 @@ class RestaurantOrderSystem {
         }
         
         let html = '';
-        let subtotal = 0;
-        let totalTax = 0;
         let total = 0;
         
         this.currentOrder.items.forEach((item) => {
-            subtotal += item.subtotal;
-            totalTax += item.taxAmount;
             total += item.total;
             
             html += `
                 <tr>
-                    <td>${item.name}${item.tax > 0 ? `<br><small class="text-muted">${item.tax}% tax</small>` : ''}</td>
+                    <td>${item.name}</td>
                     <td>
                         <div class="input-group input-group-sm" style="width: 100px;">
                             <button class="btn btn-outline-secondary" type="button" 
@@ -916,8 +783,7 @@ class RestaurantOrderSystem {
                         </div>
                     </td>
                     <td>₹${item.price}</td>
-                    <td>₹${item.subtotal}</td>
-                    <td>₹${item.taxAmount.toFixed(2)}</td>
+                    <td>₹${item.total}</td>
                     <td class="text-end">
                         <button class="btn btn-sm btn-danger" 
                                 onclick="restaurantSystem.setQuantity('${item.id}', 0)">
@@ -930,35 +796,10 @@ class RestaurantOrderSystem {
         
         tbody.innerHTML = html;
         
-        // Update totals in table footer
-        const table = document.getElementById('selected-items-table');
-        let tfoot = table.querySelector('tfoot');
-        if (!tfoot) {
-            tfoot = document.createElement('tfoot');
-            table.appendChild(tfoot);
-        }
-        
-        tfoot.innerHTML = `
-            <tr class="table-light">
-                <td colspan="3" class="text-end"><strong>Subtotal:</strong></td>
-                <td><strong>₹${subtotal.toFixed(2)}</strong></td>
-                <td colspan="2"></td>
-            </tr>
-            <tr class="table-light">
-                <td colspan="3" class="text-end"><strong>Total Tax:</strong></td>
-                <td></td>
-                <td><strong>₹${totalTax.toFixed(2)}</strong></td>
-                <td></td>
-            </tr>
-            <tr class="table-success">
-                <td colspan="3" class="text-end"><strong>Grand Total:</strong></td>
-                <td colspan="2"><strong id="grand-total">₹${total.toFixed(2)}</strong></td>
-                <td></td>
-            </tr>
-        `;
+        document.getElementById('grand-total').textContent = `₹${total}`;
     }
     
-    // Update order summary with tax
+    // Update order summary
     updateSummary() {
         // Update customer info
         const summaryCustomer = document.getElementById('summary-customer');
@@ -993,33 +834,25 @@ class RestaurantOrderSystem {
         if (!container) return;
         
         let html = '';
-        let subtotal = 0;
-        let totalTax = 0;
         let total = 0;
         
         this.currentOrder.items.forEach(item => {
-            subtotal += item.subtotal;
-            totalTax += item.taxAmount;
             total += item.total;
             
             html += `
                 <div class="summary-item">
                     <span>${item.name} x${item.quantity}</span>
-                    <span>₹${item.total.toFixed(2)}</span>
+                    <span>₹${item.total}</span>
                 </div>
             `;
         });
         
         container.innerHTML = html || '<div class="text-muted small">No items selected</div>';
         
-        // Update totals in summary
+        // Update total
         const summaryTotal = document.getElementById('summary-total');
         if (summaryTotal) {
-            summaryTotal.innerHTML = `
-                <div>Subtotal: ₹${subtotal.toFixed(2)}</div>
-                <div>Tax: ₹${totalTax.toFixed(2)}</div>
-                <div class="mt-1"><strong>Total: ₹${total.toFixed(2)}</strong></div>
-            `;
+            summaryTotal.textContent = `₹${total}`;
         }
     }
     
@@ -1044,7 +877,7 @@ class RestaurantOrderSystem {
         const todayItemsEl = document.getElementById('today-items');
         
         if (todayOrdersEl) todayOrdersEl.textContent = todayOrders.length;
-        if (todayRevenueEl) todayRevenueEl.textContent = `₹${todayRevenue.toFixed(2)}`;
+        if (todayRevenueEl) todayRevenueEl.textContent = `₹${todayRevenue}`;
         if (todayItemsEl) todayItemsEl.textContent = todayItems;
     }
     
@@ -1065,7 +898,7 @@ class RestaurantOrderSystem {
         }
     }
     
-    // Place new order with loading and tax calculation
+    // Place new order with loading
     async placeOrder(button) {
         if (this.currentOrder.items.length === 0) {
             this.showNotification('Please add items to the order', 'error');
@@ -1079,10 +912,8 @@ class RestaurantOrderSystem {
         }
         
         await this.withLoading(async () => {
-            // Calculate totals with tax
-            const subtotal = this.currentOrder.items.reduce((sum, item) => sum + item.subtotal, 0);
-            const totalTax = this.currentOrder.items.reduce((sum, item) => sum + item.taxAmount, 0);
-            const total = subtotal + totalTax;
+            // Calculate totals
+            const total = this.currentOrder.items.reduce((sum, item) => sum + item.total, 0);
             const totalCost = this.currentOrder.items.reduce((sum, item) => 
                 sum + (item.totalCost || (item.quantity * item.cost)), 0);
             const totalProfit = total - totalCost;
@@ -1099,13 +930,8 @@ class RestaurantOrderSystem {
                     price: item.price,
                     cost: item.cost,
                     quantity: item.quantity,
-                    tax: item.tax,
-                    taxAmount: item.taxAmount,
-                    subtotal: item.subtotal,
                     total: item.total
                 })),
-                subtotal: subtotal,
-                totalTax: totalTax,
                 total: total,
                 totalCost: totalCost,
                 totalProfit: totalProfit,
@@ -1202,9 +1028,9 @@ class RestaurantOrderSystem {
     
     // Show category
     showCategory(category) {
-        const element = document.getElementById(`category-${category.replace(/\s+/g, '-')}`);
+        const element = document.querySelector(`#category-${category.replace(/\s+/g, '-')}`);
         if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            element.scrollIntoView({ behavior: 'smooth' });
         }
     }
     
@@ -1241,7 +1067,7 @@ class RestaurantOrderSystem {
                     <td>${orderTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
                     <td>${order.customerName || 'Walk-in'}</td>
                     <td>${itemsText}${moreItems}</td>
-                    <td>₹${order.total ? order.total.toFixed(2) : order.total}</td>
+                    <td>₹${order.total}</td>
                     <td>
                         <span class="status-badge status-${order.status}">
                             ${order.status}
@@ -1302,54 +1128,19 @@ class RestaurantOrderSystem {
         
         // Populate items
         let itemsHtml = '';
-        let subtotal = 0;
-        let totalTax = 0;
-        let total = 0;
-        
         order.items.forEach(item => {
-            subtotal += item.subtotal || (item.price * item.quantity);
-            totalTax += item.taxAmount || 0;
-            total += item.total || (item.price * item.quantity);
-            
             itemsHtml += `
                 <tr>
-                    <td>${item.name}${item.tax > 0 ? `<br><small class="text-muted">${item.tax}% tax</small>` : ''}</td>
+                    <td>${item.name}</td>
                     <td>${item.quantity}</td>
                     <td>₹${item.price}</td>
-                    <td>₹${item.total ? item.total.toFixed(2) : (item.price * item.quantity).toFixed(2)}</td>
+                    <td>₹${item.total}</td>
                 </tr>
             `;
         });
         
         document.getElementById('modal-items-body').innerHTML = itemsHtml;
-        
-        // Update totals in modal
-        let totalHtml = '';
-        if (order.subtotal && order.totalTax) {
-            totalHtml = `
-                <tr class="table-light">
-                    <td colspan="3" class="text-end"><strong>Subtotal:</strong></td>
-                    <td><strong>₹${order.subtotal.toFixed(2)}</strong></td>
-                </tr>
-                <tr class="table-light">
-                    <td colspan="3" class="text-end"><strong>Tax:</strong></td>
-                    <td><strong>₹${order.totalTax.toFixed(2)}</strong></td>
-                </tr>
-                <tr class="table-success">
-                    <td colspan="3" class="text-end"><strong>Total:</strong></td>
-                    <td><strong>₹${order.total.toFixed(2)}</strong></td>
-                </tr>
-            `;
-        } else {
-            totalHtml = `
-                <tr class="table-success">
-                    <td colspan="3" class="text-end"><strong>Total:</strong></td>
-                    <td><strong>₹${total.toFixed(2)}</strong></td>
-                </tr>
-            `;
-        }
-        
-        document.getElementById('modal-total').innerHTML = totalHtml;
+        document.getElementById('modal-total').textContent = order.total;
         
         // Set order id on complete button
         const completeBtn = document.getElementById('complete-order-btn');
@@ -1531,8 +1322,8 @@ class RestaurantOrderSystem {
                     <td>${orderTime.toLocaleDateString()}</td>
                     <td>${order.customerName || 'Walk-in'}</td>
                     <td>${itemsCount} items</td>
-                    <td>₹${order.total ? order.total.toFixed(2) : order.total}</td>
-                    <td class="${profitClass}">₹${profit.toFixed(2)}</td>
+                    <td>₹${order.total}</td>
+                    <td class="${profitClass}">₹${profit}</td>
                     <td>${completedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
                 </tr>
             `;
@@ -1558,9 +1349,9 @@ class RestaurantOrderSystem {
         const totalProfitEl = document.getElementById('total-profit');
         const profitMarginEl = document.getElementById('profit-margin');
         
-        if (totalRevenueEl) totalRevenueEl.textContent = `₹${totalRevenue.toFixed(2)}`;
+        if (totalRevenueEl) totalRevenueEl.textContent = `₹${totalRevenue}`;
         if (totalOrdersEl) totalOrdersEl.textContent = totalOrders;
-        if (totalProfitEl) totalProfitEl.textContent = `₹${totalProfit.toFixed(2)}`;
+        if (totalProfitEl) totalProfitEl.textContent = `₹${totalProfit}`;
         if (profitMarginEl) profitMarginEl.textContent = `${profitMargin}%`;
         
         // Calculate item-wise sales
@@ -1576,7 +1367,7 @@ class RestaurantOrderSystem {
                     };
                 }
                 const itemCost = item.cost || 0;
-                const itemProfit = item.total - (itemCost * item.quantity);
+                const itemProfit = (item.price - itemCost) * item.quantity;
                 
                 itemSales[item.name].quantity += item.quantity;
                 itemSales[item.name].revenue += item.total;
@@ -1598,8 +1389,8 @@ class RestaurantOrderSystem {
                 <tr>
                     <td>${itemName}</td>
                     <td>${data.quantity}</td>
-                    <td>₹${data.revenue.toFixed(2)}</td>
-                    <td class="${profitClass}">₹${data.profit.toFixed(2)}</td>
+                    <td>₹${data.revenue}</td>
+                    <td class="${profitClass}">₹${data.profit}</td>
                     <td>${margin}%</td>
                 </tr>
             `;
@@ -1646,9 +1437,9 @@ class RestaurantOrderSystem {
             
             doc.setFontSize(11);
             doc.text(`Total Orders: ${totalOrders}`, 20, 55);
-            doc.text(`Total Revenue: ₹${totalRevenue.toFixed(2)}`, 20, 62);
-            doc.text(`Total Cost: ₹${totalCost.toFixed(2)}`, 20, 69);
-            doc.text(`Total Profit: ₹${totalProfit.toFixed(2)}`, 20, 76);
+            doc.text(`Total Revenue: ₹${totalRevenue}`, 20, 62);
+            doc.text(`Total Cost: ₹${totalCost}`, 20, 69);
+            doc.text(`Total Profit: ₹${totalProfit}`, 20, 76);
             doc.text(`Profit Margin: ${profitMargin}%`, 20, 83);
             
             // Calculate item-wise sales
@@ -1664,7 +1455,7 @@ class RestaurantOrderSystem {
                         };
                     }
                     const itemCost = item.cost || 0;
-                    const itemProfit = item.total - (itemCost * item.quantity);
+                    const itemProfit = (item.price - itemCost) * item.quantity;
                     
                     itemSales[item.name].quantity += item.quantity;
                     itemSales[item.name].revenue += item.total;
@@ -1680,9 +1471,9 @@ class RestaurantOrderSystem {
                     index + 1,
                     itemName,
                     data.quantity,
-                    `₹${data.revenue.toFixed(2)}`,
-                    `₹${data.cost.toFixed(2)}`,
-                    `₹${data.profit.toFixed(2)}`,
+                    `₹${data.revenue}`,
+                    `₹${data.cost}`,
+                    `₹${data.profit}`,
                     `${margin}%`
                 ];
             });
@@ -1751,7 +1542,7 @@ class RestaurantOrderSystem {
         if (this.menu.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="8" class="text-center py-4">
+                    <td colspan="6" class="text-center py-4">
                         <i class="fas fa-utensils fa-2x text-muted mb-2"></i>
                         <p class="text-muted">No menu items added yet</p>
                         <p class="text-muted small">Start by adding a category and then menu items</p>
@@ -1776,7 +1567,7 @@ class RestaurantOrderSystem {
         if (this.categories.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="8" class="text-center py-4">
+                    <td colspan="6" class="text-center py-4">
                         <i class="fas fa-tags fa-2x text-muted mb-2"></i>
                         <p class="text-muted">No categories added yet</p>
                         <button class="btn btn-sm btn-primary mt-2" id="add-first-category-btn">
@@ -1797,28 +1588,18 @@ class RestaurantOrderSystem {
         }
         
         // Render items grouped by category
-        this.categories.forEach(categoryObj => {
-            const categoryName = categoryObj.name || categoryObj;
-            const items = itemsByCategory[categoryName] || [];
-            
-            // Add category header row with favorite star
-            const isFavorite = categoryObj.favorite || false;
+        Object.keys(itemsByCategory).sort().forEach(category => {
+            // Add category header row
             html += `
                 <tr class="category-header" style="background-color: #f8f9fa;">
-                    <td colspan="8">
+                    <td colspan="6">
                         <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <strong>${categoryName}</strong>
-                                <button class="btn btn-sm btn-link favorite-category-btn ms-2" 
-                                        data-category="${categoryName}" 
-                                        title="${isFavorite ? 'Remove from favorites' : 'Add to favorites'}">
-                                    <i class="fas fa-star ${isFavorite ? 'text-warning' : 'text-muted'}"></i>
-                                </button>
-                            </div>
+                            <strong>${category}</strong>
                             <button class="btn btn-sm btn-outline-danger delete-category-btn" 
-                                    data-category="${categoryName}" 
-                                    title="Delete Category and all its items">
-                                <i class="fas fa-trash"></i> Delete Category
+                                    data-category="${category}" 
+                                    ${itemsByCategory[category].length > 0 ? 'disabled' : ''}
+                                    title="${itemsByCategory[category].length > 0 ? 'Remove items first to delete category' : 'Delete Category'}">
+                                <i class="fas fa-trash"></i>
                             </button>
                         </div>
                     </td>
@@ -1826,34 +1607,22 @@ class RestaurantOrderSystem {
             `;
             
             // Add items for this category
-            items.forEach(item => {
-                const profit = (item.price - item.cost);
+            itemsByCategory[category].forEach(item => {
+                const profit = item.price - item.cost;
                 const profitMargin = item.price > 0 ? ((profit / item.price) * 100).toFixed(1) : 0;
                 const profitClass = profit >= 0 ? 'profit-positive' : 'profit-negative';
                 
                 html += `
-                    <tr class="menu-item-row ${item.outOfStock ? 'out-of-stock' : ''}" data-item-id="${item.id}">
+                    <tr class="menu-item-row" data-item-id="${item.id}">
                         <td>${item.category}</td>
                         <td>
                             <div class="d-flex align-items-center">
                                 <span class="item-name">${item.name}</span>
-                                ${item.outOfStock ? '<span class="badge bg-danger ms-2">Out of Stock</span>' : ''}
                             </div>
                         </td>
                         <td>₹${item.cost}</td>
                         <td>₹${item.price}</td>
-                        <td>${item.tax || 0}%</td>
-                        <td class="${profitClass}">₹${profit.toFixed(2)}</td>
-                        <td>
-                            <div class="form-check">
-                                <input class="form-check-input out-of-stock-checkbox" 
-                                       type="checkbox" 
-                                       data-item-id="${item.id}"
-                                       ${item.outOfStock ? 'checked' : ''}
-                                       title="Mark as out of stock">
-                                <label class="form-check-label small">Out of Stock</label>
-                            </div>
-                        </td>
+                        <td class="${profitClass}">₹${profit}</td>
                         <td>
                             <div class="d-flex gap-2">
                                 <button class="btn btn-sm btn-outline-primary edit-item-btn" 
@@ -1891,218 +1660,19 @@ class RestaurantOrderSystem {
         document.querySelectorAll('.delete-category-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const category = e.currentTarget.getAttribute('data-category');
-                this.deleteCategoryWithItems(category, btn);
-            });
-        });
-        
-        // Add event listeners for favorite category buttons
-        document.querySelectorAll('.favorite-category-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const category = e.currentTarget.getAttribute('data-category');
-                this.toggleCategoryFavorite(category, btn);
-            });
-        });
-        
-        // Add event listeners for out of stock checkboxes
-        document.querySelectorAll('.out-of-stock-checkbox').forEach(checkbox => {
-            checkbox.addEventListener('change', (e) => {
-                const itemId = e.target.getAttribute('data-item-id');
-                const isOutOfStock = e.target.checked;
-                this.updateItemStockStatus(itemId, isOutOfStock, checkbox);
+                this.deleteCategory(category, btn);
             });
         });
         
         // Make rows clickable
         document.querySelectorAll('.menu-item-row').forEach(row => {
             row.addEventListener('click', (e) => {
-                if (!e.target.closest('.btn') && !e.target.closest('.form-check')) {
+                if (!e.target.closest('.btn')) {
                     const itemId = row.getAttribute('data-item-id');
                     this.editMenuItem(itemId);
                 }
             });
         });
-    }
-    
-    // Toggle category favorite status
-    async toggleCategoryFavorite(categoryName, button) {
-        await this.withLoading(async () => {
-            try {
-                // Find the category
-                const categoryIndex = this.categories.findIndex(cat => 
-                    (cat.name || cat) === categoryName
-                );
-                
-                if (categoryIndex === -1) return;
-                
-                // Toggle favorite status
-                const category = this.categories[categoryIndex];
-                if (typeof category === 'object') {
-                    category.favorite = !category.favorite;
-                } else {
-                    // Convert string category to object
-                    this.categories[categoryIndex] = {
-                        name: category,
-                        favorite: true
-                    };
-                }
-                
-                // Update in Firestore
-                await this.db.collection('businesses').doc(this.businessId).update({
-                    categories: this.categories,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                
-                // Update UI
-                this.renderMenuManagement();
-                this.updateQuickActions();
-                
-                // Update favorite button
-                const isFavorite = typeof category === 'object' ? category.favorite : true;
-                const icon = button.querySelector('i');
-                if (icon) {
-                    icon.className = `fas fa-star ${isFavorite ? 'text-warning' : 'text-muted'}`;
-                    button.title = isFavorite ? 'Remove from favorites' : 'Add to favorites';
-                }
-                
-                this.showNotification(
-                    `${categoryName} ${isFavorite ? 'added to' : 'removed from'} favorites`, 
-                    'success'
-                );
-                
-            } catch (error) {
-                console.error('Error toggling category favorite:', error);
-                this.showNotification('Error updating category', 'error');
-            }
-        }, 'Updating category...', button);
-    }
-    
-    // Update item stock status
-    async updateItemStockStatus(itemId, isOutOfStock, checkbox) {
-        await this.withLoading(async () => {
-            try {
-                // Update in Firestore
-                await this.db.collection('businesses')
-                    .doc(this.businessId)
-                    .collection('menu')
-                    .doc(itemId)
-                    .update({
-                        outOfStock: isOutOfStock,
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                
-                // Update local array
-                const itemIndex = this.menu.findIndex(item => item.id === itemId);
-                if (itemIndex !== -1) {
-                    this.menu[itemIndex].outOfStock = isOutOfStock;
-                }
-                
-                // Save to local storage
-                this.saveData('menu', this.menu);
-                
-                // Update UI
-                const row = checkbox.closest('.menu-item-row');
-                if (row) {
-                    if (isOutOfStock) {
-                        row.classList.add('out-of-stock');
-                        // Add out of stock badge if not exists
-                        if (!row.querySelector('.badge.bg-danger')) {
-                            const nameCell = row.querySelector('.item-name');
-                            if (nameCell) {
-                                nameCell.insertAdjacentHTML('afterend', 
-                                    '<span class="badge bg-danger ms-2">Out of Stock</span>'
-                                );
-                            }
-                        }
-                    } else {
-                        row.classList.remove('out-of-stock');
-                        // Remove out of stock badge
-                        const badge = row.querySelector('.badge.bg-danger');
-                        if (badge) badge.remove();
-                    }
-                }
-                
-                // Update menu items in order tab if it's active
-                if (document.querySelector('#take-order').classList.contains('active')) {
-                    this.renderMenu();
-                }
-                
-                this.showNotification(
-                    `Item marked as ${isOutOfStock ? 'out of stock' : 'available'}`, 
-                    'success'
-                );
-                
-            } catch (error) {
-                console.error('Error updating item stock status:', error);
-                this.showNotification('Error updating item status', 'error');
-                
-                // Revert checkbox state
-                checkbox.checked = !isOutOfStock;
-            }
-        }, 'Updating item status...');
-    }
-    
-    // Delete category with all its items
-    async deleteCategoryWithItems(categoryName, button) {
-        // Get items in this category
-        const itemsInCategory = this.menu.filter(item => item.category === categoryName);
-        
-        if (itemsInCategory.length > 0) {
-            const confirmed = confirm(
-                `Warning: This will delete the category "${categoryName}" and all ${itemsInCategory.length} item(s) in it.\n\nThis action cannot be undone. Are you sure you want to proceed?`
-            );
-            
-            if (!confirmed) return;
-        } else {
-            if (!confirm(`Are you sure you want to delete the category "${categoryName}"?`)) {
-                return;
-            }
-        }
-        
-        await this.withLoading(async () => {
-            try {
-                // Delete all items in this category from Firestore
-                for (const item of itemsInCategory) {
-                    await this.db.collection('businesses')
-                        .doc(this.businessId)
-                        .collection('menu')
-                        .doc(item.id)
-                        .delete();
-                    
-                    // Remove from local array
-                    this.menu = this.menu.filter(menuItem => menuItem.id !== item.id);
-                }
-                
-                // Remove category from categories array
-                this.categories = this.categories.filter(cat => 
-                    (cat.name || cat) !== categoryName
-                );
-                
-                // Update in Firestore
-                await this.db.collection('businesses').doc(this.businessId).update({
-                    categories: this.categories,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                
-                // Update UI
-                this.loadCategoriesDropdown();
-                this.renderMenuManagement();
-                this.renderMenu();
-                this.updateQuickActions();
-                
-                // Save to local storage
-                this.saveData('menu', this.menu);
-                this.saveData('categories', this.categories);
-                
-                this.showNotification(
-                    `Category "${categoryName}" and ${itemsInCategory.length} item(s) deleted successfully`, 
-                    'success'
-                );
-                
-            } catch (error) {
-                console.error('Error deleting category with items:', error);
-                this.showNotification('Error deleting category and items', 'error');
-            }
-        }, 'Deleting category...', button);
     }
     
     // Load categories into dropdown
@@ -2121,10 +1691,9 @@ class RestaurantOrderSystem {
         }
         
         this.categories.forEach(category => {
-            const categoryName = category.name || category;
             const option = document.createElement('option');
-            option.value = categoryName;
-            option.textContent = categoryName;
+            option.value = category;
+            option.textContent = category;
             categorySelect.appendChild(option);
         });
     }
@@ -2151,23 +1720,15 @@ class RestaurantOrderSystem {
             return;
         }
         
-        // Check if category already exists
-        const exists = this.categories.some(cat => 
-            (cat.name || cat) === categoryName
-        );
-        
-        if (exists) {
+        if (this.categories.includes(categoryName)) {
             this.showNotification('Category already exists', 'error');
             return;
         }
         
         await this.withLoading(async () => {
             try {
-                // Add to local array as object
-                this.categories.push({
-                    name: categoryName,
-                    favorite: false
-                });
+                // Add to local array
+                this.categories.push(categoryName);
                 
                 // Update in Firestore
                 await this.db.collection('businesses').doc(this.businessId).update({
@@ -2196,6 +1757,44 @@ class RestaurantOrderSystem {
         }, 'Saving category...', button);
     }
     
+    // Delete category with loading
+    async deleteCategory(category, button) {
+        // Check if category has items
+        const itemsInCategory = this.menu.filter(item => item.category === category);
+        
+        if (itemsInCategory.length > 0) {
+            this.showNotification(`Cannot delete category "${category}" because it has ${itemsInCategory.length} item(s). Delete or move items first.`, 'error');
+            return;
+        }
+        
+        if (!confirm(`Are you sure you want to delete the category "${category}"?`)) {
+            return;
+        }
+        
+        await this.withLoading(async () => {
+            try {
+                // Remove from local array
+                this.categories = this.categories.filter(cat => cat !== category);
+                
+                // Update in Firestore
+                await this.db.collection('businesses').doc(this.businessId).update({
+                    categories: this.categories,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                // Update UI
+                this.loadCategoriesDropdown();
+                this.renderMenuManagement();
+                
+                this.showNotification(`Category "${category}" deleted successfully`, 'success');
+                
+            } catch (error) {
+                console.error('Error deleting category:', error);
+                this.showNotification('Error deleting category', 'error');
+            }
+        }, 'Deleting category...', button);
+    }
+    
     // Edit menu item
     editMenuItem(itemId) {
         const item = this.menu.find(item => item.id === itemId);
@@ -2206,8 +1805,6 @@ class RestaurantOrderSystem {
         document.getElementById('item-name').value = item.name;
         document.getElementById('item-price').value = item.price;
         document.getElementById('item-cost').value = item.cost;
-        document.getElementById('item-tax').value = item.tax || 0;
-        document.getElementById('item-out-of-stock').checked = item.outOfStock || false;
         document.getElementById('edit-item-id').value = itemId;
         
         // Change button text
@@ -2230,8 +1827,6 @@ class RestaurantOrderSystem {
     // Reset menu item form
     resetMenuItemForm() {
         document.getElementById('menu-item-form').reset();
-        document.getElementById('item-tax').value = 0;
-        document.getElementById('item-out-of-stock').checked = false;
         document.getElementById('edit-item-id').value = '';
         
         // Reset button
@@ -2243,39 +1838,27 @@ class RestaurantOrderSystem {
         }
     }
     
-    // Save menu item with loading (updated with tax and stock status)
+    // Save menu item with loading
     async saveMenuItem(button) {
         const category = document.getElementById('item-category').value;
         const name = document.getElementById('item-name').value.trim();
         const price = parseFloat(document.getElementById('item-price').value);
         const cost = parseFloat(document.getElementById('item-cost').value);
-        const tax = parseFloat(document.getElementById('item-tax').value) || 0;
-        const outOfStock = document.getElementById('item-out-of-stock').checked;
         const itemId = document.getElementById('edit-item-id').value;
         
         // Validation
-        if (!category || !name || !price || isNaN(cost)) {
-            this.showNotification('Please fill in all required fields', 'error');
+        if (!category || !name || !price || !cost) {
+            this.showNotification('Please fill in all fields', 'error');
             return;
         }
         
-        if (price <= 0) {
-            this.showNotification('Price must be positive', 'error');
-            return;
-        }
-        
-        if (cost < 0) {
-            this.showNotification('Cost cannot be negative', 'error');
+        if (price <= 0 || cost < 0) {
+            this.showNotification('Price must be positive and cost cannot be negative', 'error');
             return;
         }
         
         if (cost > price) {
             this.showNotification('Cost cannot be greater than price', 'error');
-            return;
-        }
-        
-        if (tax < 0 || tax > 100) {
-            this.showNotification('Tax must be between 0 and 100 percent', 'error');
             return;
         }
         
@@ -2286,8 +1869,6 @@ class RestaurantOrderSystem {
                     name: name,
                     price: price,
                     cost: cost,
-                    tax: tax,
-                    outOfStock: outOfStock,
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
                 
@@ -2465,9 +2046,6 @@ class RestaurantOrderSystem {
                 
                 await this.saveBusinessProfile(profileData);
                 
-                // Update menu tab name
-                this.updateMenuTabName();
-                
             } catch (error) {
                 console.error('Error saving business profile:', error);
                 this.showNotification('Error saving profile', 'error');
@@ -2558,11 +2136,11 @@ class RestaurantOrderSystem {
         if (totalBusinessOrders) totalBusinessOrders.textContent = this.completedOrders.length;
         if (totalBusinessRevenue) {
             const totalRevenue = this.completedOrders.reduce((sum, order) => sum + order.total, 0);
-            totalBusinessRevenue.textContent = `₹${totalRevenue.toFixed(2)}`;
+            totalBusinessRevenue.textContent = `₹${totalRevenue}`;
         }
         if (totalBusinessProfit) {
             const totalProfit = this.completedOrders.reduce((sum, order) => sum + (order.totalProfit || 0), 0);
-            totalBusinessProfit.textContent = `₹${totalProfit.toFixed(2)}`;
+            totalBusinessProfit.textContent = `₹${totalProfit}`;
         }
     }
     
@@ -2580,8 +2158,8 @@ class RestaurantOrderSystem {
         const analyticsOrdersEl = document.getElementById('analytics-orders');
         const analyticsMarginEl = document.getElementById('analytics-margin');
         
-        if (analyticsRevenueEl) analyticsRevenueEl.textContent = `₹${analyticsRevenue.toFixed(2)}`;
-        if (analyticsProfitEl) analyticsProfitEl.textContent = `₹${analyticsProfit.toFixed(2)}`;
+        if (analyticsRevenueEl) analyticsRevenueEl.textContent = `₹${analyticsRevenue}`;
+        if (analyticsProfitEl) analyticsProfitEl.textContent = `₹${analyticsProfit}`;
         if (analyticsOrdersEl) analyticsOrdersEl.textContent = analyticsOrders;
         if (analyticsMarginEl) analyticsMarginEl.textContent = `${analyticsMargin}%`;
         

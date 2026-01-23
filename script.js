@@ -1,4 +1,4 @@
-// Restaurant Order Management System with Firebase - COMPLETE WITH ALL FEATURES
+// Restaurant Order Management System with Firebase - COMPLETE WITH ALL FIXES AND NEW FEATURES
 class RestaurantOrderSystem {
     constructor() {
         // Firebase services
@@ -80,15 +80,12 @@ class RestaurantOrderSystem {
         this.setupTabNavigation();
         this.initAuth();
         this.initEventListeners();
-        this.setupLongPressForQR();
+        this.setupLongPressEvents();
         this.renderMenu();
         this.updateSummary();
         this.updateStats();
         this.updateBadges();
         this.updateNextOrderNumber();
-        
-        // Set default app name
-        this.updateAppName();
         
         // Add global reference for HTML event handlers
         window.restaurantSystem = this;
@@ -120,70 +117,39 @@ class RestaurantOrderSystem {
         this.switchTab('take-order');
     }
     
-    // Setup long press for QR code on profile tab
-    setupLongPressForQR() {
-        const profileNavItem = document.getElementById('profile-nav-item');
+    // Setup long press events for QR code
+    setupLongPressEvents() {
+        const profileLink = document.getElementById('profile-nav-link');
         let pressTimer;
         
-        if (profileNavItem) {
-            profileNavItem.addEventListener('touchstart', (e) => {
-                pressTimer = setTimeout(() => {
-                    this.showQRCodeModal();
-                    e.preventDefault();
-                }, 1000); // 1 second long press
-            });
-            
-            profileNavItem.addEventListener('touchend', () => {
-                clearTimeout(pressTimer);
-            });
-            
-            profileNavItem.addEventListener('touchmove', () => {
-                clearTimeout(pressTimer);
-            });
-            
-            // For mouse devices
-            profileNavItem.addEventListener('mousedown', (e) => {
-                pressTimer = setTimeout(() => {
-                    this.showQRCodeModal();
-                    e.preventDefault();
-                }, 1000);
-            });
-            
-            profileNavItem.addEventListener('mouseup', () => {
-                clearTimeout(pressTimer);
-            });
-            
-            profileNavItem.addEventListener('mouseleave', () => {
-                clearTimeout(pressTimer);
-            });
-        }
+        profileLink.addEventListener('touchstart', (e) => {
+            pressTimer = setTimeout(() => {
+                this.showQRCode();
+                e.preventDefault();
+            }, 1000); // 1 second long press
+        });
+        
+        profileLink.addEventListener('touchend', () => {
+            clearTimeout(pressTimer);
+        });
+        
+        profileLink.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            this.showQRCode();
+        });
     }
     
-    // Show QR code modal
-    showQRCodeModal() {
-        if (!this.businessData || !this.businessData.qrCodeUrl) {
-            this.showNotification('No QR code uploaded yet', 'info');
-            return;
+    // Show QR Code Modal
+    showQRCode() {
+        if (this.businessData && this.businessData.qrCodeUrl) {
+            const qrCodeImage = document.getElementById('qrCodeImage');
+            qrCodeImage.src = this.businessData.qrCodeUrl;
+            
+            const modal = new bootstrap.Modal(document.getElementById('qrCodeModal'));
+            modal.show();
+        } else {
+            this.showNotification('No QR code uploaded yet', 'warning');
         }
-        
-        const qrCodeImg = document.getElementById('modal-qr-code');
-        const qrBusinessName = document.getElementById('qr-business-name');
-        const qrBusinessPhone = document.getElementById('qr-business-phone');
-        
-        if (qrCodeImg) {
-            qrCodeImg.src = this.businessData.qrCodeUrl;
-        }
-        
-        if (qrBusinessName) {
-            qrBusinessName.textContent = this.businessData.name || 'Stall Wise';
-        }
-        
-        if (qrBusinessPhone) {
-            qrBusinessPhone.textContent = this.businessData.phone ? `Phone: ${this.businessData.phone}` : '';
-        }
-        
-        const modal = new bootstrap.Modal(document.getElementById('qrCodeModal'));
-        modal.show();
     }
     
     // Switch between tabs
@@ -212,36 +178,11 @@ class RestaurantOrderSystem {
             selectedTab.classList.add('active');
         }
         
-        // Update UI based on business name
-        this.updateAppName();
+        // Update menu tab name based on business type
         this.updateMenuTabName();
         
         // Load tab-specific data
         this.loadTabData(tabId);
-    }
-    
-    // Update app name in navbar and title
-    updateAppName() {
-        const businessName = this.businessData?.name;
-        const appName = businessName || 'Stall Wise';
-        
-        // Update navbar brand name
-        const navbarBrand = document.getElementById('navbar-brand-name');
-        if (navbarBrand) {
-            navbarBrand.textContent = appName;
-        }
-        
-        // Update page title
-        document.title = appName;
-        
-        // Update menu management tab title
-        const menuManagementTitle = document.getElementById('menu-management-title');
-        if (menuManagementTitle) {
-            const businessType = this.businessData?.type || 'restaurant';
-            const isInventory = businessType === 'other' || businessType === 'event';
-            const titleText = isInventory ? 'Inventory Management' : 'Menu Management';
-            menuManagementTitle.innerHTML = `<i class="fas fa-edit me-2"></i>${titleText} - ${appName}`;
-        }
     }
     
     // Update menu tab name based on business type
@@ -249,11 +190,14 @@ class RestaurantOrderSystem {
         const businessType = this.businessData?.type || 'restaurant';
         const isInventory = businessType === 'other' || businessType === 'event';
         const menuTabLink = document.querySelector('.nav-link[data-tab="menu-management"] .nav-text');
+        const menuHeader = document.querySelector('#menu-management .card-title');
         
         if (isInventory) {
             if (menuTabLink) menuTabLink.textContent = 'Inventory';
+            if (menuHeader) menuHeader.innerHTML = '<i class="fas fa-edit me-2"></i>Inventory Management';
         } else {
             if (menuTabLink) menuTabLink.textContent = 'Menu';
+            if (menuHeader) menuHeader.innerHTML = '<i class="fas fa-edit me-2"></i>Menu Management';
         }
     }
     
@@ -454,8 +398,10 @@ class RestaurantOrderSystem {
                     this.categories = categoriesData;
                     this.nextOrderId = this.businessData.nextOrderId || 1001;
                     this.updateNextOrderNumber();
-                    this.updateAppName();
                     this.updateMenuTabName();
+                    
+                    // Update app name based on business name
+                    this.updateAppName();
                 }
                 
                 // Load menu items
@@ -499,6 +445,22 @@ class RestaurantOrderSystem {
                 this.showNotification('Error loading business data: ' + error.message, 'error');
             }
         }, 'Loading business data...');
+    }
+    
+    // Update app name based on business name
+    updateAppName() {
+        const brandName = document.getElementById('brand-name');
+        const appTitle = document.querySelector('title');
+        
+        if (this.businessData && this.businessData.name) {
+            // Use business name
+            if (brandName) brandName.textContent = this.businessData.name;
+            if (appTitle) appTitle.textContent = this.businessData.name;
+        } else {
+            // Use default name
+            if (brandName) brandName.textContent = 'Stall Wise';
+            if (appTitle) appTitle.textContent = 'Stall Wise';
+        }
     }
     
     // Load menu items from Firestore
@@ -563,10 +525,44 @@ class RestaurantOrderSystem {
         }, 'Signing out...', button);
     }
     
+    // Upload file to Firebase Storage
+    async uploadFile(file, path) {
+        try {
+            const storageRef = this.storage.ref();
+            const fileRef = storageRef.child(path);
+            await fileRef.put(file);
+            const downloadURL = await fileRef.getDownloadURL();
+            return downloadURL;
+        } catch (error) {
+            console.error('Error uploading file:', error);
+            throw error;
+        }
+    }
+    
     // Create or update business profile
     async saveBusinessProfile(profileData) {
         await this.withLoading(async () => {
             try {
+                // Handle file uploads
+                const logoFile = document.getElementById('business-logo').files[0];
+                const qrCodeFile = document.getElementById('qr-code').files[0];
+                
+                if (logoFile) {
+                    const logoUrl = await this.uploadFile(
+                        logoFile, 
+                        `businesses/${this.businessId || 'new'}/logo_${Date.now()}`
+                    );
+                    profileData.logoUrl = logoUrl;
+                }
+                
+                if (qrCodeFile) {
+                    const qrCodeUrl = await this.uploadFile(
+                        qrCodeFile,
+                        `businesses/${this.businessId || 'new'}/qrcode_${Date.now()}`
+                    );
+                    profileData.qrCodeUrl = qrCodeUrl;
+                }
+                
                 if (!this.businessId) {
                     // Create new business
                     const businessRef = await this.db.collection('businesses').add({
@@ -648,7 +644,7 @@ class RestaurantOrderSystem {
         // Print all
         document.getElementById('print-all-btn')?.addEventListener('click', () => this.printAllOrders());
         
-        // Download PDF - UPDATED: Now uses date filter
+        // Download PDF - now with date filter
         const downloadPdfBtn = document.getElementById('download-pdf-btn');
         downloadPdfBtn?.addEventListener('click', () => this.downloadPDFReport(downloadPdfBtn));
         
@@ -692,25 +688,6 @@ class RestaurantOrderSystem {
             this.completeOrder(orderId, completeOrderBtn);
         });
         
-        // QR Code modal button
-        document.getElementById('show-qr-modal-btn')?.addEventListener('click', () => {
-            this.showQRCodeModal();
-        });
-        
-        // Download QR button
-        document.getElementById('download-qr-btn')?.addEventListener('click', () => {
-            this.downloadQRCode();
-        });
-        
-        // File upload progress for logo and QR code
-        document.getElementById('business-logo')?.addEventListener('change', (e) => {
-            this.handleLogoUpload(e.target.files[0]);
-        });
-        
-        document.getElementById('qr-code')?.addEventListener('change', (e) => {
-            this.handleQRCodeUpload(e.target.files[0]);
-        });
-        
         // Auth and profile buttons
         document.addEventListener('click', (e) => {
             if (e.target && e.target.id === 'google-signin-btn') {
@@ -727,6 +704,12 @@ class RestaurantOrderSystem {
                 e.preventDefault();
                 this.signOut();
             }
+            
+            // Show QR code when clicked in profile
+            if (e.target && e.target.id === 'profile-qr-code') {
+                e.preventDefault();
+                this.showQRCode();
+            }
         });
         
         // Business profile form
@@ -736,186 +719,33 @@ class RestaurantOrderSystem {
             e.preventDefault();
             this.handleBusinessProfileSubmit(saveProfileBtn);
         });
+        
+        // Preview logo and QR code when selected
+        document.getElementById('business-logo')?.addEventListener('change', (e) => {
+            this.previewImage(e.target, 'logo-preview');
+        });
+        
+        document.getElementById('qr-code')?.addEventListener('change', (e) => {
+            this.previewImage(e.target, 'qr-code-preview');
+        });
     }
     
-    // ================= FILE UPLOAD METHODS =================
-    
-    // Handle logo upload to Firebase Storage
-    async handleLogoUpload(file) {
-        if (!file) return;
+    // Preview image before upload
+    previewImage(input, previewId) {
+        const preview = document.getElementById(previewId);
+        const file = input.files[0];
         
-        if (!file.type.match('image.*')) {
-            this.showNotification('Please select an image file for logo', 'error');
-            return;
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                preview.innerHTML = `
+                    <img src="${e.target.result}" alt="Preview" class="img-thumbnail" style="max-width: 150px; max-height: 150px;">
+                `;
+            };
+            reader.readAsDataURL(file);
+        } else {
+            preview.innerHTML = '';
         }
-        
-        if (file.size > 5 * 1024 * 1024) { // 5MB limit
-            this.showNotification('Logo file size should be less than 5MB', 'error');
-            return;
-        }
-        
-        await this.uploadFileToFirebase(file, 'logo', 'logo-progress', 'logo-progress-bar', 
-            async (downloadURL) => {
-                // Update business data with logo URL
-                this.businessData.logoUrl = downloadURL;
-                
-                // Update in Firestore
-                await this.db.collection('businesses').doc(this.businessId).update({
-                    logoUrl: downloadURL,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                
-                // Update preview
-                this.updateLogoPreview(downloadURL);
-                
-                this.showNotification('Logo uploaded successfully!', 'success');
-            },
-            'logo'
-        );
-    }
-    
-    // Handle QR code upload to Firebase Storage
-    async handleQRCodeUpload(file) {
-        if (!file) return;
-        
-        if (!file.type.match('image.*')) {
-            this.showNotification('Please select an image file for QR code', 'error');
-            return;
-        }
-        
-        if (file.size > 5 * 1024 * 1024) { // 5MB limit
-            this.showNotification('QR code file size should be less than 5MB', 'error');
-            return;
-        }
-        
-        await this.uploadFileToFirebase(file, 'qr', 'qr-progress', 'qr-progress-bar', 
-            async (downloadURL) => {
-                // Update business data with QR code URL
-                this.businessData.qrCodeUrl = downloadURL;
-                
-                // Update in Firestore
-                await this.db.collection('businesses').doc(this.businessId).update({
-                    qrCodeUrl: downloadURL,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                
-                // Update preview
-                this.updateQRPreview(downloadURL);
-                
-                this.showNotification('QR code uploaded successfully!', 'success');
-            },
-            'qr'
-        );
-    }
-    
-    // Generic file upload to Firebase Storage
-    async uploadFileToFirebase(file, fileType, progressId, progressBarId, onSuccess, fileNamePrefix = 'file') {
-        try {
-            // Show progress bar
-            const progressContainer = document.getElementById(progressId);
-            const progressBar = document.getElementById(progressBarId);
-            
-            if (progressContainer && progressBar) {
-                progressContainer.style.display = 'block';
-                progressBar.style.width = '0%';
-                progressBar.textContent = '0%';
-            }
-            
-            // Create a reference to the file location
-            const storageRef = this.storage.ref();
-            const fileRef = storageRef.child(`businesses/${this.businessId}/${fileNamePrefix}_${Date.now()}_${file.name}`);
-            
-            // Upload file
-            const uploadTask = fileRef.put(file);
-            
-            // Listen for state changes, errors, and completion
-            uploadTask.on('state_changed',
-                (snapshot) => {
-                    // Progress monitoring
-                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    if (progressBar) {
-                        progressBar.style.width = progress + '%';
-                        progressBar.textContent = Math.round(progress) + '%';
-                    }
-                },
-                (error) => {
-                    console.error(`Error uploading ${fileType}:`, error);
-                    this.showNotification(`Error uploading ${fileType}: ${error.message}`, 'error');
-                    
-                    // Hide progress bar on error
-                    if (progressContainer) {
-                        progressContainer.style.display = 'none';
-                    }
-                },
-                async () => {
-                    // Upload completed successfully
-                    const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
-                    
-                    // Hide progress bar
-                    if (progressContainer) {
-                        progressContainer.style.display = 'none';
-                    }
-                    
-                    // Call success callback
-                    await onSuccess(downloadURL);
-                }
-            );
-            
-        } catch (error) {
-            console.error(`Error starting ${fileType} upload:`, error);
-            this.showNotification(`Error uploading ${fileType}`, 'error');
-        }
-    }
-    
-    // Update logo preview
-    updateLogoPreview(url) {
-        const previewContainer = document.getElementById('logo-preview');
-        if (previewContainer) {
-            previewContainer.innerHTML = `
-                <div class="logo-preview-container">
-                    <img src="${url}" alt="Business Logo" class="img-thumbnail logo-preview">
-                    <div class="mt-1 small text-muted">Logo Preview</div>
-                </div>
-            `;
-        }
-    }
-    
-    // Update QR code preview
-    updateQRPreview(url) {
-        const previewContainer = document.getElementById('qr-preview');
-        const displayContainer = document.getElementById('qr-display-container');
-        const qrDisplay = document.getElementById('qr-display');
-        
-        if (previewContainer) {
-            previewContainer.innerHTML = `
-                <div class="qr-preview-container">
-                    <img src="${url}" alt="QR Code" class="img-thumbnail qr-preview">
-                    <div class="mt-1 small text-muted">QR Code Preview</div>
-                </div>
-            `;
-        }
-        
-        if (displayContainer && qrDisplay) {
-            displayContainer.style.display = 'block';
-            qrDisplay.src = url;
-        }
-    }
-    
-    // Download QR code
-    downloadQRCode() {
-        if (!this.businessData?.qrCodeUrl) {
-            this.showNotification('No QR code available to download', 'error');
-            return;
-        }
-        
-        const link = document.createElement('a');
-        link.href = this.businessData.qrCodeUrl;
-        link.download = `qr-code-${this.businessData.name || 'business'}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        this.showNotification('QR code downloaded successfully!', 'success');
     }
     
     // ================= MENU MANAGEMENT =================
@@ -1278,8 +1108,7 @@ class RestaurantOrderSystem {
         const paymentMap = {
             'cash': 'Cash',
             'card': 'Card',
-            'upi': 'UPI',
-            'qr': 'QR Code'
+            'upi': 'UPI'
         };
         const summaryPayment = document.getElementById('summary-payment');
         if (summaryPayment) {
@@ -1436,8 +1265,7 @@ class RestaurantOrderSystem {
                 orderTime: new Date().toISOString(),
                 status: 'preparing',
                 orderNumber: this.nextOrderId,
-                businessId: this.businessId,
-                businessName: this.businessData?.name || 'Stall Wise'
+                businessId: this.businessId
             };
             
             try {
@@ -1849,7 +1677,7 @@ class RestaurantOrderSystem {
         }
     }
     
-    // Get filtered orders based on date range from completed orders page
+    // Get filtered orders based on date range
     getFilteredOrders() {
         const dateFrom = document.getElementById('date-from')?.value;
         const dateTo = document.getElementById('date-to')?.value;
@@ -1875,13 +1703,12 @@ class RestaurantOrderSystem {
         
         if (!tbody || !emptyState) return;
         
-        // Get filtered orders
         const filteredOrders = this.getFilteredOrders();
         
         if (filteredOrders.length === 0) {
             tbody.innerHTML = '';
             emptyState.style.display = 'block';
-            this.updateSalesSummary([]);
+            this.updateSalesSummary(filteredOrders);
             return;
         }
         
@@ -1982,42 +1809,35 @@ class RestaurantOrderSystem {
         }
     }
     
-    // Download PDF report with loading - UPDATED: Uses date filter
+    // Download PDF report with loading - NOW WITH DATE FILTER
     async downloadPDFReport(button) {
-        // Get filtered orders based on date range
         const filteredOrders = this.getFilteredOrders();
         
         if (filteredOrders.length === 0) {
-            this.showNotification('No orders in selected date range to generate report', 'error');
+            this.showNotification('No completed orders to generate report', 'error');
             return;
         }
+        
+        // Get date range for report title
+        const dateFrom = document.getElementById('date-from')?.value || 'All';
+        const dateTo = document.getElementById('date-to')?.value || 'All';
         
         await this.withLoading(async () => {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
-            // Get date range info
-            const dateFrom = document.getElementById('date-from')?.value;
-            const dateTo = document.getElementById('date-to')?.value;
-            const dateRangeText = dateFrom && dateTo ? 
-                `${new Date(dateFrom).toLocaleDateString()} to ${new Date(dateTo).toLocaleDateString()}` : 
-                'All Time';
-            
-            // Business info
-            const businessName = this.businessData?.name || 'Stall Wise';
-            
-            // Add title
+            // Add title with date range
             doc.setFontSize(20);
             doc.setTextColor(40, 40, 40);
-            doc.text(`${businessName} - Sales Report`, 105, 20, { align: 'center' });
+            doc.text('Sales Report - ' + this.businessData?.name || 'Stall Wise', 105, 15, { align: 'center' });
             
             // Add date range
             doc.setFontSize(12);
             doc.setTextColor(100, 100, 100);
-            doc.text(`Date Range: ${dateRangeText}`, 105, 30, { align: 'center' });
+            doc.text(`Date Range: ${dateFrom} to ${dateTo}`, 105, 25, { align: 'center' });
             
             // Add generation date
-            doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 105, 38, { align: 'center' });
+            doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 105, 32, { align: 'center' });
             
             // Add summary
             const totalRevenue = filteredOrders.reduce((sum, order) => sum + order.total, 0);
@@ -2028,15 +1848,14 @@ class RestaurantOrderSystem {
             
             doc.setFontSize(14);
             doc.setTextColor(0, 0, 0);
-            doc.text('Summary', 20, 50);
+            doc.text('Summary', 20, 45);
             
             doc.setFontSize(11);
-            doc.text(`Business: ${businessName}`, 20, 60);
-            doc.text(`Total Orders: ${totalOrders}`, 20, 67);
-            doc.text(`Total Revenue: ₹${totalRevenue.toFixed(2)}`, 20, 74);
-            doc.text(`Total Cost: ₹${totalCost.toFixed(2)}`, 20, 81);
-            doc.text(`Total Profit: ₹${totalProfit.toFixed(2)}`, 20, 88);
-            doc.text(`Profit Margin: ${profitMargin}%`, 20, 95);
+            doc.text(`Total Orders: ${totalOrders}`, 20, 55);
+            doc.text(`Total Revenue: ₹${totalRevenue.toFixed(2)}`, 20, 62);
+            doc.text(`Total Cost: ₹${totalCost.toFixed(2)}`, 20, 69);
+            doc.text(`Total Profit: ₹${totalProfit.toFixed(2)}`, 20, 76);
+            doc.text(`Profit Margin: ${profitMargin}%`, 20, 83);
             
             // Calculate item-wise sales
             const itemSales = {};
@@ -2078,19 +1897,16 @@ class RestaurantOrderSystem {
             doc.autoTable({
                 head: [['#', 'Item Name', 'Qty', 'Revenue', 'Cost', 'Profit', 'Margin']],
                 body: tableData,
-                startY: 105,
+                startY: 90,
                 theme: 'grid',
                 headStyles: { fillColor: [255, 107, 53] }
             });
             
             // Save PDF with date range in filename
-            const fileName = dateFrom && dateTo ? 
-                `${businessName}_report_${dateFrom}_to_${dateTo}.pdf` :
-                `${businessName}_report_all_time.pdf`;
+            const filename = `sales-report-${dateFrom === 'All' ? 'all' : dateFrom}-to-${dateTo === 'All' ? 'all' : dateTo}.pdf`;
+            doc.save(filename);
             
-            doc.save(fileName);
-            
-            this.showNotification('PDF report with profit analysis downloaded!', 'success');
+            this.showNotification('PDF report with date filter downloaded!', 'success');
         }, 'Generating PDF...', button);
     }
     
@@ -2792,4 +2608,400 @@ class RestaurantOrderSystem {
     }
     
     // Hide profile setup modal
-    hideProfile
+    hideProfileSetupModal() {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('profileSetupModal'));
+        if (modal) {
+            modal.hide();
+        }
+    }
+    
+    // Save initial profile with loading
+    async saveInitialProfile(button) {
+        const businessName = document.getElementById('initial-business-name')?.value;
+        const businessType = document.getElementById('initial-business-type')?.value;
+        const businessPhone = document.getElementById('initial-business-phone')?.value;
+        
+        if (!businessName?.trim()) {
+            this.showNotification('Please enter a business name', 'error');
+            return;
+        }
+        
+        await this.withLoading(async () => {
+            try {
+                await this.saveBusinessProfile({
+                    name: businessName,
+                    type: businessType,
+                    phone: businessPhone,
+                    email: this.currentUser.email
+                });
+                
+                this.hideProfileSetupModal();
+            } catch (error) {
+                console.error('Error saving initial profile:', error);
+                this.showNotification('Error saving profile: ' + error.message, 'error');
+            }
+        }, 'Setting up business...', button);
+    }
+    
+    // Handle business profile submit
+    async handleBusinessProfileSubmit(button) {
+        const businessName = document.getElementById('business-name').value.trim();
+        const businessType = document.getElementById('business-type').value;
+        const businessDescription = document.getElementById('business-description').value.trim();
+        const businessPhone = document.getElementById('business-phone').value.trim();
+        const businessEmail = document.getElementById('business-email').value.trim();
+        const businessAddress = document.getElementById('business-address').value.trim();
+        
+        if (!businessName) {
+            this.showNotification('Business name is required', 'error');
+            return;
+        }
+        
+        await this.withLoading(async () => {
+            try {
+                const profileData = {
+                    name: businessName,
+                    type: businessType,
+                    description: businessDescription,
+                    phone: businessPhone,
+                    email: businessEmail || this.currentUser.email,
+                    address: businessAddress
+                };
+                
+                await this.saveBusinessProfile(profileData);
+                
+                // Update app name
+                this.updateAppName();
+                // Update menu tab name
+                this.updateMenuTabName();
+                
+            } catch (error) {
+                console.error('Error saving business profile:', error);
+                this.showNotification('Error saving profile', 'error');
+            }
+        }, 'Saving profile...', button);
+    }
+    
+    // Update UI for logged in user
+    updateUIForLoggedInUser() {
+        const profileLink = document.getElementById('profile-nav-link');
+        if (profileLink && this.currentUser) {
+            const userName = this.currentUser.displayName || this.currentUser.email;
+            const navText = profileLink.querySelector('.nav-text');
+            if (navText) navText.textContent = userName.split('@')[0];
+        }
+    }
+    
+    // Update user UI elements
+    updateUserUI() {
+        // Update user avatar and name in profile tab
+        const userAvatar = document.getElementById('user-avatar');
+        const userDisplayName = document.getElementById('user-display-name');
+        const userEmail = document.getElementById('user-email');
+        
+        if (userAvatar && this.currentUser.photoURL) {
+            userAvatar.src = this.currentUser.photoURL;
+            userAvatar.style.display = 'block';
+        }
+        
+        if (userDisplayName) {
+            userDisplayName.textContent = this.currentUser.displayName || this.currentUser.email.split('@')[0];
+        }
+        
+        if (userEmail) {
+            userEmail.textContent = this.currentUser.email;
+        }
+    }
+    
+    // Update profile tab
+    updateProfileTab() {
+        if (!this.businessData) {
+            document.getElementById('business-info').innerHTML = '<p class="text-muted">No business profile created yet.</p>';
+            return;
+        }
+        
+        // Update form fields
+        const businessName = document.getElementById('business-name');
+        const businessType = document.getElementById('business-type');
+        const businessDescription = document.getElementById('business-description');
+        const businessPhone = document.getElementById('business-phone');
+        const businessEmail = document.getElementById('business-email');
+        const businessAddress = document.getElementById('business-address');
+        
+        if (businessName) businessName.value = this.businessData.name || '';
+        if (businessType) businessType.value = this.businessData.type || 'restaurant';
+        if (businessDescription) businessDescription.value = this.businessData.description || '';
+        if (businessPhone) businessPhone.value = this.businessData.phone || '';
+        if (businessEmail) businessEmail.value = this.businessData.email || '';
+        if (businessAddress) businessAddress.value = this.businessData.address || '';
+        
+        // Update business info display
+        const businessInfoDiv = document.getElementById('business-info');
+        if (businessInfoDiv) {
+            businessInfoDiv.innerHTML = `
+                <p><strong>Name:</strong> ${this.businessData.name}</p>
+                <p><strong>Type:</strong> ${this.businessData.type}</p>
+                <p><strong>Phone:</strong> ${this.businessData.phone || 'Not set'}</p>
+                <p><strong>Email:</strong> ${this.businessData.email}</p>
+                <p><strong>Business ID:</strong> <small class="text-muted">${this.businessId}</small></p>
+            `;
+        }
+        
+        // Load logo if exists
+        if (this.businessData.logoUrl) {
+            const logoPreview = document.getElementById('logo-preview');
+            if (logoPreview) {
+                logoPreview.innerHTML = `
+                    <img src="${this.businessData.logoUrl}" alt="Business Logo" class="img-thumbnail" style="max-width: 150px; max-height: 150px;">
+                `;
+            }
+        }
+        
+        // Load QR code if exists
+        const qrCodeSection = document.getElementById('qr-code-section');
+        const profileQrCode = document.getElementById('profile-qr-code');
+        
+        if (this.businessData.qrCodeUrl) {
+            qrCodeSection.style.display = 'block';
+            profileQrCode.src = this.businessData.qrCodeUrl;
+            profileQrCode.onclick = () => this.showQRCode();
+        } else {
+            qrCodeSection.style.display = 'none';
+        }
+        
+        // Update business stats
+        const totalBusinessOrders = document.getElementById('total-business-orders');
+        const totalBusinessRevenue = document.getElementById('total-business-revenue');
+        const totalBusinessProfit = document.getElementById('total-business-profit');
+        
+        if (totalBusinessOrders) totalBusinessOrders.textContent = this.completedOrders.length;
+        if (totalBusinessRevenue) {
+            const totalRevenue = this.completedOrders.reduce((sum, order) => sum + order.total, 0);
+            totalBusinessRevenue.textContent = `₹${totalRevenue.toFixed(2)}`;
+        }
+        if (totalBusinessProfit) {
+            const totalProfit = this.completedOrders.reduce((sum, order) => sum + (order.totalProfit || 0), 0);
+            totalBusinessProfit.textContent = `₹${totalProfit.toFixed(2)}`;
+        }
+    }
+    
+    // ================= ANALYTICS =================
+    
+    // Update analytics with date range filter
+    updateAnalytics() {
+        // Get date range values
+        const dateFrom = document.getElementById('analytics-date-from')?.value;
+        const dateTo = document.getElementById('analytics-date-to')?.value;
+        
+        // Filter orders by date range
+        let filteredOrders = this.completedOrders;
+        
+        if (dateFrom && dateTo) {
+            filteredOrders = this.completedOrders.filter(order => {
+                const orderDate = order.completedTime ? 
+                    order.completedTime.split('T')[0] : 
+                    order.orderTime.split('T')[0];
+                return orderDate >= dateFrom && orderDate <= dateTo;
+            });
+        }
+        
+        // Calculate analytics data
+        const analyticsRevenue = filteredOrders.reduce((sum, order) => sum + order.total, 0);
+        const analyticsProfit = filteredOrders.reduce((sum, order) => sum + (order.totalProfit || 0), 0);
+        const analyticsOrders = filteredOrders.length;
+        const analyticsMargin = analyticsRevenue > 0 ? ((analyticsProfit / analyticsRevenue) * 100).toFixed(1) : 0;
+        
+        // Update analytics display
+        const analyticsRevenueEl = document.getElementById('analytics-revenue');
+        const analyticsProfitEl = document.getElementById('analytics-profit');
+        const analyticsOrdersEl = document.getElementById('analytics-orders');
+        const analyticsMarginEl = document.getElementById('analytics-margin');
+        
+        if (analyticsRevenueEl) analyticsRevenueEl.textContent = `₹${analyticsRevenue.toFixed(2)}`;
+        if (analyticsProfitEl) analyticsProfitEl.textContent = `₹${analyticsProfit.toFixed(2)}`;
+        if (analyticsOrdersEl) analyticsOrdersEl.textContent = analyticsOrders;
+        if (analyticsMarginEl) analyticsMarginEl.textContent = `${analyticsMargin}%`;
+        
+        // Update category performance
+        this.updateCategoryPerformance(filteredOrders);
+        
+        // Update best selling items
+        this.updateBestSellingItems(filteredOrders);
+        
+        // Render charts with filtered data
+        this.renderAnalyticsCharts(filteredOrders);
+    }
+    
+    // Update category performance
+    updateCategoryPerformance(orders) {
+        const categoryPerformance = {};
+        
+        orders.forEach(order => {
+            order.items.forEach(item => {
+                const category = item.category || 'Uncategorized';
+                if (!categoryPerformance[category]) {
+                    categoryPerformance[category] = {
+                        revenue: 0,
+                        profit: 0,
+                        items: 0
+                    };
+                }
+                
+                const itemCost = item.cost || 0;
+                const itemProfit = item.total - (itemCost * item.quantity);
+                
+                categoryPerformance[category].revenue += item.total;
+                categoryPerformance[category].profit += itemProfit;
+                categoryPerformance[category].items += item.quantity;
+            });
+        });
+        
+        // Sort by revenue
+        const sortedCategories = Object.entries(categoryPerformance)
+            .sort((a, b) => b[1].revenue - a[1].revenue)
+            .slice(0, 10);
+        
+        let html = '';
+        sortedCategories.forEach(([category, data]) => {
+            const margin = data.revenue > 0 ? ((data.profit / data.revenue) * 100).toFixed(1) : 0;
+            html += `
+                <tr>
+                    <td>${category}</td>
+                    <td>₹${data.revenue.toFixed(2)}</td>
+                    <td>₹${data.profit.toFixed(2)}</td>
+                    <td>${margin}%</td>
+                </tr>
+            `;
+        });
+        
+        const categoryPerformanceBody = document.getElementById('category-performance-body');
+        if (categoryPerformanceBody) {
+            categoryPerformanceBody.innerHTML = html || 
+                '<tr><td colspan="4" class="text-center text-muted">No data</td></tr>';
+        }
+    }
+    
+    // Update best selling items
+    updateBestSellingItems(orders) {
+        const itemSales = {};
+        
+        orders.forEach(order => {
+            order.items.forEach(item => {
+                if (!itemSales[item.name]) {
+                    itemSales[item.name] = {
+                        quantity: 0,
+                        revenue: 0,
+                        profit: 0
+                    };
+                }
+                
+                const itemCost = item.cost || 0;
+                const itemProfit = item.total - (itemCost * item.quantity);
+                
+                itemSales[item.name].quantity += item.quantity;
+                itemSales[item.name].revenue += item.total;
+                itemSales[item.name].profit += itemProfit;
+            });
+        });
+        
+        // Sort by quantity sold
+        const bestItems = Object.entries(itemSales)
+            .sort((a, b) => b[1].quantity - a[1].quantity)
+            .slice(0, 10);
+        
+        let html = '';
+        bestItems.forEach(([itemName, data]) => {
+            html += `
+                <tr>
+                    <td>${itemName}</td>
+                    <td>${data.quantity}</td>
+                    <td>₹${data.revenue.toFixed(2)}</td>
+                    <td>₹${data.profit.toFixed(2)}</td>
+                </tr>
+            `;
+        });
+        
+        const bestItemsBody = document.getElementById('best-items-body');
+        if (bestItemsBody) {
+            bestItemsBody.innerHTML = html || 
+                '<tr><td colspan="4" class="text-center text-muted">No data</td></tr>';
+        }
+    }
+    
+    // Render analytics charts
+    renderAnalyticsCharts(filteredOrders) {
+        // This is a simplified chart implementation
+        // You can expand this with actual chart data from filteredOrders
+        
+        const ctx = document.getElementById('revenueProfitChart');
+        if (ctx && filteredOrders.length > 0) {
+            // Destroy existing chart if it exists
+            if (this.revenueProfitChart) {
+                this.revenueProfitChart.destroy();
+            }
+            
+            // Calculate revenue and profit
+            const revenue = filteredOrders.reduce((sum, order) => sum + order.total, 0);
+            const profit = filteredOrders.reduce((sum, order) => sum + (order.totalProfit || 0), 0);
+            
+            // Create simple bar chart
+            this.revenueProfitChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Revenue', 'Profit'],
+                    datasets: [{
+                        label: 'Amount (₹)',
+                        data: [revenue, profit],
+                        backgroundColor: ['#ff6b35', '#28a745']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '₹' + value;
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ₹' + context.raw.toFixed(2);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Note: Other charts can be implemented similarly
+        // For now, we'll just show a basic chart
+    }
+    
+    // ================= INITIALIZE =================
+    
+    // Initialize the system when DOM is loaded
+    static initialize() {
+        // Create global instance
+        window.restaurantSystem = new RestaurantOrderSystem();
+    }
+}
+
+// Initialize when DOM is fully loaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        RestaurantOrderSystem.initialize();
+    });
+} else {
+    RestaurantOrderSystem.initialize();
+}

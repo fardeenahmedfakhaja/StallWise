@@ -78,10 +78,13 @@ class RestaurantOrderSystem {
     // ================= INITIALIZATION =================
     
     init() {
-        this.initAuth();
         this.initEventListeners();
         this.setupLongPressEvents();
-        this.checkInitialSetup();
+        
+        // Check auth state after DOM is fully loaded
+        setTimeout(() => {
+            this.initAuth();
+        }, 100);
     }
     
     checkInitialSetup() {
@@ -100,16 +103,30 @@ class RestaurantOrderSystem {
     // ================= AUTHENTICATION & LOGIN SCREEN =================
     
     showLoginScreen() {
-        document.getElementById('login-screen').classList.remove('hidden');
-        document.getElementById('app-content').style.display = 'none';
+        const loginScreen = document.getElementById('login-screen');
+        const appContent = document.getElementById('app-content');
+        
+        if (loginScreen) {
+            loginScreen.classList.remove('hidden');
+        }
+        if (appContent) {
+            appContent.style.display = 'none';
+        }
         
         // Clear any existing modal backdrops
         this.cleanupModalBackdrops();
     }
     
     showApp() {
-        document.getElementById('login-screen').classList.add('hidden');
-        document.getElementById('app-content').style.display = 'block';
+        const loginScreen = document.getElementById('login-screen');
+        const appContent = document.getElementById('app-content');
+        
+        if (loginScreen) {
+            loginScreen.classList.add('hidden');
+        }
+        if (appContent) {
+            appContent.style.display = 'block';
+        }
         
         // Setup app
         this.setupTabNavigation();
@@ -190,6 +207,19 @@ class RestaurantOrderSystem {
                 this.showNotification('Error signing out', 'error');
             }
         }, 'Signing out...', button);
+    }
+    
+    initAuth() {
+        // Check if user is already logged in
+        this.auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                this.currentUser = user;
+                await this.loadUserData(user.uid);
+                this.showApp();
+            } else {
+                this.showLoginScreen();
+            }
+        });
     }
     
     // ================= MODAL FIXES =================
@@ -943,16 +973,18 @@ class RestaurantOrderSystem {
         const profileLink = document.getElementById('profile-nav-link');
         let pressTimer;
         
-        profileLink.addEventListener('touchstart', (e) => {
-            pressTimer = setTimeout(() => {
-                this.showQRCode();
-                e.preventDefault();
-            }, 1000);
-        });
-        
-        profileLink.addEventListener('touchend', () => {
-            clearTimeout(pressTimer);
-        });
+        if (profileLink) {
+            profileLink.addEventListener('touchstart', (e) => {
+                pressTimer = setTimeout(() => {
+                    this.showQRCode();
+                    e.preventDefault();
+                }, 1000);
+            });
+            
+            profileLink.addEventListener('touchend', () => {
+                clearTimeout(pressTimer);
+            });
+        }
         
         // QR code image click
         document.getElementById('profile-qr-code')?.addEventListener('click', () => {
@@ -1078,6 +1110,22 @@ class RestaurantOrderSystem {
             this.previewImage(e.target, 'qr-code-preview');
         });
         
+        // Fix QR Code modal
+        const qrModal = document.getElementById('qrCodeModal');
+        if (qrModal) {
+            qrModal.addEventListener('hidden.bs.modal', () => {
+                this.cleanupModalBackdrops();
+            });
+        }
+        
+        // Fix other modals
+        const modals = document.querySelectorAll('.modal');
+        modals.forEach(modal => {
+            modal.addEventListener('hidden.bs.modal', () => {
+                this.cleanupModalBackdrops();
+            });
+        });
+        
         // Window resize for responsive updates
         window.addEventListener('resize', () => {
             if (window.innerWidth <= 768) {
@@ -1136,6 +1184,10 @@ class RestaurantOrderSystem {
     }
     
     showNotification(message, type = 'info') {
+        // Remove any existing notifications first
+        const existingNotifications = document.querySelectorAll('.notification');
+        existingNotifications.forEach(notification => notification.remove());
+        
         const notification = document.createElement('div');
         notification.className = `notification alert alert-${type} alert-dismissible fade show`;
         notification.innerHTML = `

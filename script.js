@@ -1,4 +1,4 @@
-// Restaurant Order Management System with Firebase - COMPLETE WITH ALL FIXES AND NEW FEATURES
+// Restaurant Order Management System with Firebase - COMPLETE WITH ALL FIXES
 class RestaurantOrderSystem {
     constructor() {
         // Firebase services
@@ -145,8 +145,24 @@ class RestaurantOrderSystem {
             const qrCodeImage = document.getElementById('qrCodeImage');
             qrCodeImage.src = this.businessData.qrCodeUrl;
             
-            const modal = new bootstrap.Modal(document.getElementById('qrCodeModal'));
+            // Get modal element
+            const modalElement = document.getElementById('qrCodeModal');
+            
+            // Create and show modal
+            const modal = new bootstrap.Modal(modalElement, {
+                backdrop: true,
+                keyboard: true
+            });
             modal.show();
+            
+            // FIX: Clean up event listeners when modal is hidden
+            const hideHandler = () => {
+                modal.hide();
+                modal.dispose();
+                modalElement.removeEventListener('hidden.bs.modal', hideHandler);
+            };
+            
+            modalElement.addEventListener('hidden.bs.modal', hideHandler);
         } else {
             this.showNotification('No QR code uploaded yet', 'warning');
         }
@@ -319,132 +335,147 @@ class RestaurantOrderSystem {
     
     // Check authentication state
     initAuth() {
-        this.auth.onAuthStateChanged((user) => {
+        this.auth.onAuthStateChanged(async (user) => {
             if (user) {
                 this.currentUser = user;
                 this.updateUserUI();
-                this.loadUserData(user.uid);
+                
+                // FIX: Add small delay to prevent UI freezing
+                setTimeout(async () => {
+                    await this.loadUserData(user.uid);
+                }, 100);
             } else {
                 this.currentUser = null;
                 this.userData = null;
                 this.businessId = null;
                 this.businessData = null;
-                this.showAuthModal();
+                
+                // FIX: Use setTimeout to prevent modal stacking
+                setTimeout(() => {
+                    this.showAuthModal();
+                }, 300);
             }
         });
     }
     
     // Load user data from Firestore
     async loadUserData(userId) {
-        await this.withLoading(async () => {
-            try {
-                const userDoc = await this.db.collection('users').doc(userId).get();
+        try {
+            const userDoc = await this.db.collection('users').doc(userId).get();
+            
+            if (userDoc.exists) {
+                this.userData = userDoc.data();
                 
-                if (userDoc.exists) {
-                    this.userData = userDoc.data();
+                // Check if user has a business/stall
+                if (this.userData.businessId) {
+                    this.businessId = this.userData.businessId;
+                    await this.loadBusinessData();
                     
-                    // Check if user has a business/stall
-                    if (this.userData.businessId) {
-                        this.businessId = this.userData.businessId;
-                        await this.loadBusinessData();
+                    // FIX: Delay hiding auth modal to prevent UI freeze
+                    setTimeout(() => {
                         this.hideAuthModal();
-                    } else {
-                        this.showProfileSetupModal();
-                    }
+                    }, 200);
                 } else {
-                    // First time user, create user document
-                    await this.db.collection('users').doc(userId).set({
-                        email: this.currentUser.email,
-                        displayName: this.currentUser.displayName,
-                        photoURL: this.currentUser.photoURL,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    this.showProfileSetupModal();
+                    // FIX: Delay showing profile setup modal
+                    setTimeout(() => {
+                        this.showProfileSetupModal();
+                    }, 300);
                 }
+            } else {
+                // First time user, create user document
+                await this.db.collection('users').doc(userId).set({
+                    email: this.currentUser.email,
+                    displayName: this.currentUser.displayName,
+                    photoURL: this.currentUser.photoURL,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
                 
-                this.updateUIForLoggedInUser();
-            } catch (error) {
-                console.error('Error loading user data:', error);
-                this.showNotification('Error loading user data', 'error');
+                // FIX: Delay showing profile setup modal
+                setTimeout(() => {
+                    this.showProfileSetupModal();
+                }, 300);
             }
-        }, 'Loading user data...');
+            
+            this.updateUIForLoggedInUser();
+        } catch (error) {
+            console.error('Error loading user data:', error);
+            this.showNotification('Error loading user data', 'error');
+        }
     }
     
     // Load business data from Firestore
     async loadBusinessData() {
-        await this.withLoading(async () => {
-            try {
-                // Load business data
-                const businessDoc = await this.db.collection('businesses').doc(this.businessId).get();
-                if (businessDoc.exists) {
-                    this.businessData = businessDoc.data();
+        try {
+            // Load business data
+            const businessDoc = await this.db.collection('businesses').doc(this.businessId).get();
+            if (businessDoc.exists) {
+                this.businessData = businessDoc.data();
+                
+                // Handle categories format (support both old and new)
+                let categoriesData = this.businessData.categories || [];
+                if (categoriesData.length > 0 && typeof categoriesData[0] === 'string') {
+                    // Convert old string format to new object format
+                    categoriesData = categoriesData.map(name => ({ 
+                        name, 
+                        favorite: false 
+                    }));
                     
-                    // Handle categories format (support both old and new)
-                    let categoriesData = this.businessData.categories || [];
-                    if (categoriesData.length > 0 && typeof categoriesData[0] === 'string') {
-                        // Convert old string format to new object format
-                        categoriesData = categoriesData.map(name => ({ 
-                            name, 
-                            favorite: false 
-                        }));
-                        
-                        // Update in Firestore
-                        await this.db.collection('businesses').doc(this.businessId).update({
-                            categories: categoriesData
-                        });
-                    }
-                    
-                    this.categories = categoriesData;
-                    this.nextOrderId = this.businessData.nextOrderId || 1001;
-                    this.updateNextOrderNumber();
-                    this.updateMenuTabName();
-                    
-                    // Update app name based on business name
-                    this.updateAppName();
+                    // Update in Firestore
+                    await this.db.collection('businesses').doc(this.businessId).update({
+                        categories: categoriesData
+                    });
                 }
                 
-                // Load menu items
-                await this.loadMenuFromFirestore();
+                this.categories = categoriesData;
+                this.nextOrderId = this.businessData.nextOrderId || 1001;
+                this.updateNextOrderNumber();
+                this.updateMenuTabName();
                 
-                // Load orders
-                const ordersSnapshot = await this.db.collection('businesses')
-                    .doc(this.businessId)
-                    .collection('orders')
-                    .get();
-                
-                const allOrders = ordersSnapshot.docs.map(doc => ({ 
-                    id: doc.id, 
-                    ...doc.data(),
-                    orderNumber: doc.data().orderNumber || 0
-                }));
-                
-                // Filter ongoing orders locally
-                this.orders = allOrders
-                    .filter(order => order.status === 'preparing' || order.status === 'ready')
-                    .sort((a, b) => new Date(b.orderTime) - new Date(a.orderTime));
-                
-                // Filter completed orders locally
-                this.completedOrders = allOrders
-                    .filter(order => order.status === 'completed')
-                    .sort((a, b) => new Date(b.completedTime || b.orderTime) - new Date(a.completedTime || a.orderTime))
-                    .slice(0, 50);
-                
-                // Update UI
-                this.renderMenu();
-                this.updateQuickActions();
-                this.renderOngoingOrders();
-                this.renderCompletedOrders();
-                this.renderMenuManagement();
-                this.updateSummary();
-                this.updateStats();
-                this.updateBadges();
-                
-            } catch (error) {
-                console.error('Error loading business data:', error);
-                this.showNotification('Error loading business data: ' + error.message, 'error');
+                // Update app name based on business name
+                this.updateAppName();
             }
-        }, 'Loading business data...');
+            
+            // Load menu items
+            await this.loadMenuFromFirestore();
+            
+            // Load orders
+            const ordersSnapshot = await this.db.collection('businesses')
+                .doc(this.businessId)
+                .collection('orders')
+                .get();
+            
+            const allOrders = ordersSnapshot.docs.map(doc => ({ 
+                id: doc.id, 
+                ...doc.data(),
+                orderNumber: doc.data().orderNumber || 0
+            }));
+            
+            // Filter ongoing orders locally
+            this.orders = allOrders
+                .filter(order => order.status === 'preparing' || order.status === 'ready')
+                .sort((a, b) => new Date(b.orderTime) - new Date(a.orderTime));
+            
+            // Filter completed orders locally
+            this.completedOrders = allOrders
+                .filter(order => order.status === 'completed')
+                .sort((a, b) => new Date(b.completedTime || b.orderTime) - new Date(a.completedTime || a.orderTime))
+                .slice(0, 50);
+            
+            // Update UI
+            this.renderMenu();
+            this.updateQuickActions();
+            this.renderOngoingOrders();
+            this.renderCompletedOrders();
+            this.renderMenuManagement();
+            this.updateSummary();
+            this.updateStats();
+            this.updateBadges();
+            
+        } catch (error) {
+            console.error('Error loading business data:', error);
+            this.showNotification('Error loading business data: ' + error.message, 'error');
+        }
     }
     
     // Update app name based on business name
@@ -517,7 +548,11 @@ class RestaurantOrderSystem {
                 this.businessId = null;
                 this.businessData = null;
                 this.showNotification('Signed out successfully', 'info');
-                this.showAuthModal();
+                
+                // FIX: Use setTimeout to prevent modal stacking
+                setTimeout(() => {
+                    this.showAuthModal();
+                }, 300);
             } catch (error) {
                 console.error('Error signing out:', error);
                 this.showNotification('Error signing out', 'error');
@@ -706,7 +741,7 @@ class RestaurantOrderSystem {
             }
             
             // Show QR code when clicked in profile
-            if (e.target && e.target.id === 'profile-qr-code') {
+            if (e.target && (e.target.id === 'profile-qr-code' || e.target.closest('#profile-qr-code'))) {
                 e.preventDefault();
                 this.showQRCode();
             }
@@ -727,6 +762,58 @@ class RestaurantOrderSystem {
         
         document.getElementById('qr-code')?.addEventListener('change', (e) => {
             this.previewImage(e.target, 'qr-code-preview');
+        });
+        
+        // FIX: QR Code modal close event
+        document.getElementById('qrCodeModal')?.addEventListener('hidden.bs.modal', () => {
+            // Clean up modal backdrop
+            const backdrops = document.querySelectorAll('.modal-backdrop');
+            backdrops.forEach(backdrop => backdrop.remove());
+            
+            // Remove modal-open class from body
+            document.body.classList.remove('modal-open');
+            document.body.style.paddingRight = '';
+            
+            // Remove any leftover modal divs
+            const leftoverModals = document.querySelectorAll('.modal');
+            leftoverModals.forEach(modal => {
+                if (modal.id !== 'qrCodeModal' && modal.parentNode) {
+                    modal.remove();
+                }
+            });
+        });
+        
+        // FIX: Order details modal close event
+        document.getElementById('orderDetailsModal')?.addEventListener('hidden.bs.modal', () => {
+            // Clean up modal backdrop
+            const backdrops = document.querySelectorAll('.modal-backdrop');
+            backdrops.forEach(backdrop => backdrop.remove());
+            
+            // Remove modal-open class from body
+            document.body.classList.remove('modal-open');
+            document.body.style.paddingRight = '';
+        });
+        
+        // FIX: Auth modal close event
+        document.getElementById('authModal')?.addEventListener('hidden.bs.modal', () => {
+            // Clean up modal backdrop
+            const backdrops = document.querySelectorAll('.modal-backdrop');
+            backdrops.forEach(backdrop => backdrop.remove());
+            
+            // Remove modal-open class from body
+            document.body.classList.remove('modal-open');
+            document.body.style.paddingRight = '';
+        });
+        
+        // FIX: Profile setup modal close event
+        document.getElementById('profileSetupModal')?.addEventListener('hidden.bs.modal', () => {
+            // Clean up modal backdrop
+            const backdrops = document.querySelectorAll('.modal-backdrop');
+            backdrops.forEach(backdrop => backdrop.remove());
+            
+            // Remove modal-open class from body
+            document.body.classList.remove('modal-open');
+            document.body.style.paddingRight = '';
         });
     }
     
@@ -1809,7 +1896,7 @@ class RestaurantOrderSystem {
         }
     }
     
-    // Download PDF report with loading - NOW WITH DATE FILTER
+    // Download PDF report with loading - NOW WITH DATE FILTER AND FIXED TEXT ISSUE
     async downloadPDFReport(button) {
         const filteredOrders = this.getFilteredOrders();
         
@@ -1826,10 +1913,14 @@ class RestaurantOrderSystem {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
+            // FIX: Use standard fonts to prevent character spacing issues
+            doc.setFont("helvetica", "normal");
+            
             // Add title with date range
             doc.setFontSize(20);
             doc.setTextColor(40, 40, 40);
-            doc.text('Sales Report - ' + this.businessData?.name || 'Stall Wise', 105, 15, { align: 'center' });
+            const title = `Sales Report - ${this.businessData?.name || 'Stall Wise'}`;
+            doc.text(title, 105, 15, { align: 'center' });
             
             // Add date range
             doc.setFontSize(12);
@@ -1852,9 +1943,10 @@ class RestaurantOrderSystem {
             
             doc.setFontSize(11);
             doc.text(`Total Orders: ${totalOrders}`, 20, 55);
-            doc.text(`Total Revenue: ₹${totalRevenue.toFixed(2)}`, 20, 62);
-            doc.text(`Total Cost: ₹${totalCost.toFixed(2)}`, 20, 69);
-            doc.text(`Total Profit: ₹${totalProfit.toFixed(2)}`, 20, 76);
+            // FIX: Use "Rs." instead of ₹ to prevent character issues
+            doc.text(`Total Revenue: Rs.${totalRevenue.toFixed(2)}`, 20, 62);
+            doc.text(`Total Cost: Rs.${totalCost.toFixed(2)}`, 20, 69);
+            doc.text(`Total Profit: Rs.${totalProfit.toFixed(2)}`, 20, 76);
             doc.text(`Profit Margin: ${profitMargin}%`, 20, 83);
             
             // Calculate item-wise sales
@@ -1885,28 +1977,36 @@ class RestaurantOrderSystem {
                 return [
                     index + 1,
                     itemName,
-                    data.quantity,
-                    `₹${data.revenue.toFixed(2)}`,
-                    `₹${data.cost.toFixed(2)}`,
-                    `₹${data.profit.toFixed(2)}`,
+                    data.quantity.toString(),
+                    `Rs.${data.revenue.toFixed(2)}`,
+                    `Rs.${data.cost.toFixed(2)}`,
+                    `Rs.${data.profit.toFixed(2)}`,
                     `${margin}%`
                 ];
             });
             
             // Add item-wise sales table with profit
+            // FIX: Set table headers with standard text
             doc.autoTable({
                 head: [['#', 'Item Name', 'Qty', 'Revenue', 'Cost', 'Profit', 'Margin']],
                 body: tableData,
                 startY: 90,
                 theme: 'grid',
-                headStyles: { fillColor: [255, 107, 53] }
+                headStyles: { 
+                    fillColor: [255, 107, 53],
+                    fontStyle: 'normal'
+                },
+                styles: {
+                    font: 'helvetica',
+                    fontStyle: 'normal'
+                }
             });
             
             // Save PDF with date range in filename
             const filename = `sales-report-${dateFrom === 'All' ? 'all' : dateFrom}-to-${dateTo === 'All' ? 'all' : dateTo}.pdf`;
             doc.save(filename);
             
-            this.showNotification('PDF report with date filter downloaded!', 'success');
+            this.showNotification('PDF report downloaded successfully!', 'success');
         }, 'Generating PDF...', button);
     }
     
@@ -2589,29 +2689,73 @@ class RestaurantOrderSystem {
     
     // Show authentication modal
     showAuthModal() {
-        const modal = new bootstrap.Modal(document.getElementById('authModal'));
+        // FIX: Clear any existing modal backdrops first
+        const existingBackdrops = document.querySelectorAll('.modal-backdrop');
+        existingBackdrops.forEach(backdrop => backdrop.remove());
+        
+        // Remove modal-open class
+        document.body.classList.remove('modal-open');
+        document.body.style.paddingRight = '';
+        
+        const modalElement = document.getElementById('authModal');
+        const modal = new bootstrap.Modal(modalElement, {
+            backdrop: 'static',
+            keyboard: false
+        });
         modal.show();
     }
     
     // Hide authentication modal
     hideAuthModal() {
-        const modal = bootstrap.Modal.getInstance(document.getElementById('authModal'));
+        const modalElement = document.getElementById('authModal');
+        const modal = bootstrap.Modal.getInstance(modalElement);
         if (modal) {
             modal.hide();
+            
+            // FIX: Clean up after modal is hidden
+            setTimeout(() => {
+                const backdrops = document.querySelectorAll('.modal-backdrop');
+                backdrops.forEach(backdrop => backdrop.remove());
+                
+                document.body.classList.remove('modal-open');
+                document.body.style.paddingRight = '';
+            }, 300);
         }
     }
     
     // Show profile setup modal
     showProfileSetupModal() {
-        const modal = new bootstrap.Modal(document.getElementById('profileSetupModal'));
+        // FIX: Clear any existing modal backdrops first
+        const existingBackdrops = document.querySelectorAll('.modal-backdrop');
+        existingBackdrops.forEach(backdrop => backdrop.remove());
+        
+        // Remove modal-open class
+        document.body.classList.remove('modal-open');
+        document.body.style.paddingRight = '';
+        
+        const modalElement = document.getElementById('profileSetupModal');
+        const modal = new bootstrap.Modal(modalElement, {
+            backdrop: 'static',
+            keyboard: false
+        });
         modal.show();
     }
     
     // Hide profile setup modal
     hideProfileSetupModal() {
-        const modal = bootstrap.Modal.getInstance(document.getElementById('profileSetupModal'));
+        const modalElement = document.getElementById('profileSetupModal');
+        const modal = bootstrap.Modal.getInstance(modalElement);
         if (modal) {
             modal.hide();
+            
+            // FIX: Clean up after modal is hidden
+            setTimeout(() => {
+                const backdrops = document.querySelectorAll('.modal-backdrop');
+                backdrops.forEach(backdrop => backdrop.remove());
+                
+                document.body.classList.remove('modal-open');
+                document.body.style.paddingRight = '';
+            }, 300);
         }
     }
     
@@ -2764,6 +2908,8 @@ class RestaurantOrderSystem {
         if (this.businessData.qrCodeUrl) {
             qrCodeSection.style.display = 'block';
             profileQrCode.src = this.businessData.qrCodeUrl;
+            
+            // FIX: Add click event directly to the image
             profileQrCode.onclick = () => this.showQRCode();
         } else {
             qrCodeSection.style.display = 'none';

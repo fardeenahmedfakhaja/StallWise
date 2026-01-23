@@ -189,7 +189,7 @@ body {
     width: 100%;
 }
 
-/* Tab Content - FIXED */
+/* Tab Content */
 .tab-content {
     display: none;
     animation: fadeIn 0.3s ease;
@@ -642,12 +642,13 @@ body {
 
 /* Improved ongoing orders buttons */
 .view-order-btn {
-    width: 36px;
+    min-width: 80px;
     height: 36px;
-    padding: 0;
+    padding: 6px 12px;
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 5px;
 }
 
 .complete-order-btn {
@@ -889,6 +890,31 @@ body {
     }
 }
 
+/* Date Range Filter Styles */
+.d-flex.gap-2.align-items-center {
+    flex-wrap: wrap;
+    gap: 8px !important;
+}
+
+#date-from, #date-to, #analytics-date-from, #analytics-date-to {
+    width: 150px !important;
+}
+
+#apply-date-filter, #apply-analytics-filter {
+    min-width: 70px;
+}
+
+@media (max-width: 768px) {
+    #date-from, #date-to, #analytics-date-from, #analytics-date-to {
+        width: 130px !important;
+        font-size: 0.85rem;
+    }
+    
+    .d-flex.gap-2.align-items-center span {
+        font-size: 0.9rem;
+    }
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     body {
@@ -1016,8 +1042,10 @@ body {
     
     /* Adjust button sizes for mobile */
     .view-order-btn {
-        width: 32px;
+        width: 70px;
         height: 32px;
+        font-size: 0.85rem;
+        padding: 5px 8px;
     }
     
     .complete-order-btn {
@@ -1030,6 +1058,21 @@ body {
     .tab-content {
         min-height: auto;
         padding-bottom: 20px;
+    }
+    
+    /* Adjust date filters for mobile */
+    .d-flex.gap-2.align-items-center {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+    
+    #date-from, #date-to, #analytics-date-from, #analytics-date-to {
+        width: 100% !important;
+        margin-bottom: 5px;
+    }
+    
+    .d-flex.gap-2.align-items-center span {
+        display: none;
     }
 }
 
@@ -1147,8 +1190,6 @@ body {
 .modal {
     z-index: 10000;
 }
-
-/* Add these styles to your existing style.css file */
 
 /* Out of stock styles */
 .menu-item-row.out-of-stock {
@@ -1325,4 +1366,38 @@ body {
     .quick-category-btn {
         display: none !important;
     }
+}
+
+/* Date Input Styles */
+input[type="date"] {
+    padding: 8px 12px;
+    border: 2px solid #e1e5e9;
+    border-radius: 6px;
+    font-family: inherit;
+}
+
+input[type="date"]:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.25);
+    outline: none;
+}
+
+/* Modal Improvements */
+#orderDetailsModal .modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+#modal-items-body tr td:first-child {
+    max-width: 200px;
+    word-break: break-word;
+}
+
+/* Selected Items Table Fix */
+#selected-items-table tfoot {
+    background-color: #f8f9fa;
+}
+
+#selected-items-table tfoot tr:last-child {
+    background-color: #d4edda !important;
 }

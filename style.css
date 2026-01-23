@@ -950,11 +950,17 @@ body {
     .menu-item-card {
         padding: 12px;
         margin: 5px;
-        min-height: 110px;
+        min-height: 140px;
+        height: 160px;
     }
     
     .menu-item-name {
         font-size: 0.9rem;
+        line-height: 1.2;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
     }
     
     .menu-item-price {
@@ -982,7 +988,7 @@ body {
     }
     
     .table {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
     }
     
     .table thead th,
@@ -1057,7 +1063,7 @@ body {
     /* Fix tab content on mobile */
     .tab-content {
         min-height: auto;
-        padding-bottom: 20px;
+        padding-bottom: 70px; /* For bottom nav */
     }
     
     /* Adjust date filters for mobile */
@@ -1073,6 +1079,121 @@ body {
     
     .d-flex.gap-2.align-items-center span {
         display: none;
+    }
+    
+    /* Mobile bottom navigation */
+    .mobile-bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: white;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        z-index: 1000;
+        padding: 10px 0;
+        display: flex;
+        justify-content: space-around;
+    }
+    
+    .mobile-nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-decoration: none;
+        color: #666;
+        font-size: 0.7rem;
+        padding: 5px 10px;
+        border-radius: 8px;
+        transition: all 0.3s;
+        position: relative;
+    }
+    
+    .mobile-nav-item.active {
+        color: var(--primary-color);
+        background: rgba(255, 107, 53, 0.1);
+    }
+    
+    .mobile-nav-icon {
+        font-size: 1.2rem;
+        margin-bottom: 3px;
+    }
+    
+    .mobile-nav-badge {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: #dc3545;
+        color: white;
+        border-radius: 50%;
+        width: 18px;
+        height: 18px;
+        font-size: 0.7rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Mobile order cards */
+    .mobile-order-card {
+        background: white;
+        border-radius: 12px;
+        margin-bottom: 15px;
+        overflow: hidden;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+    }
+    
+    .mobile-order-header {
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+        color: white;
+        padding: 12px 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .mobile-order-body {
+        padding: 15px;
+    }
+    
+    .mobile-order-info {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+    
+    .mobile-order-items {
+        margin-top: 15px;
+    }
+    
+    .mobile-order-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #f5f5f5;
+    }
+    
+    .mobile-order-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 15px;
+    }
+    
+    .mobile-order-actions .btn {
+        flex: 1;
+        padding: 10px;
+        font-size: 0.85rem;
+    }
+    
+    /* Selected items mobile view */
+    .selected-item-mobile {
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .selected-item-mobile:last-child {
+        border-bottom: none;
     }
 }
 
@@ -1123,6 +1244,52 @@ body {
         left: 10px;
         margin: 0 auto;
     }
+    
+    /* Menu grid for mobile */
+    .menu-grid-mobile {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        margin: 0 -5px;
+    }
+    
+    .menu-grid-mobile .col-6 {
+        padding: 0 5px;
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+    
+    .menu-item-card {
+        margin: 0;
+        height: 160px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 12px;
+    }
+    
+    .menu-item-category {
+        font-size: 0.8rem;
+        color: #888;
+        margin-bottom: 5px;
+    }
+    
+    /* Mobile only elements */
+    .mobile-table-view {
+        display: block !important;
+    }
+    
+    .desktop-table-view {
+        display: none !important;
+    }
+    
+    .d-block.d-md-none {
+        display: block !important;
+    }
+    
+    .d-none.d-md-block {
+        display: none !important;
+    }
 }
 
 /* Print Styles */
@@ -1131,7 +1298,8 @@ body {
     .btn,
     .card-header .btn,
     .loading-overlay,
-    .notification {
+    .notification,
+    .mobile-bottom-nav {
         display: none !important;
     }
     
@@ -1184,11 +1352,11 @@ body {
 
 /* Fix for Bootstrap modal backdrop */
 .modal-backdrop {
-    z-index: 9999;
+    z-index: 1050 !important;
 }
 
 .modal {
-    z-index: 10000;
+    z-index: 1060 !important;
 }
 
 /* Out of stock styles */
@@ -1403,15 +1571,6 @@ input[type="date"]:focus {
 }
 
 /* FIX: Modal backdrop cleanup */
-.modal-backdrop {
-    z-index: 1040 !important;
-}
-
-.modal {
-    z-index: 1050 !important;
-}
-
-/* FIX: Prevent multiple backdrops */
 body.modal-open {
     overflow: hidden;
     padding-right: 0 !important;
@@ -1448,21 +1607,6 @@ body.modal-open {
     src: local('Helvetica'), local('Arial');
 }
 
-/* FIX: Long press hint visibility */
-@media (max-width: 768px) {
-    .nav-link[data-longpress="true"]::after {
-        content: ' (Hold for QR)';
-        font-size: 0.6rem;
-        opacity: 0.5;
-    }
-}
-
-/* FIX: Prevent text selection issues in PDF */
-.pdf-text {
-    font-family: 'Helvetica', 'Arial', sans-serif;
-    letter-spacing: normal !important;
-}
-
 /* FIX: Loading overlay z-index */
 .loading-overlay {
     z-index: 99999 !important;
@@ -1486,11 +1630,6 @@ body.modal-open {
     transition: opacity 0.15s linear;
 }
 
-/* FIX: Body overflow when modal is open */
-body {
-    overflow-x: hidden;
-}
-
 /* FIX: Ensure proper stacking context */
 .navbar {
     z-index: 1000 !important;
@@ -1499,4 +1638,87 @@ body {
 .main-content {
     position: relative;
     z-index: 1;
+}
+
+/* Mobile bottom nav fixed */
+@media (max-width: 768px) {
+    body {
+        padding-bottom: 70px;
+    }
+}
+
+/* Login Page Styles */
+#login-page {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    z-index: 9999;
+    overflow-y: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#login-page.active {
+    display: flex;
+}
+
+.login-container {
+    width: 100%;
+    max-width: 400px;
+    padding: 20px;
+}
+
+.login-card {
+    background: white;
+    border-radius: 20px;
+    padding: 40px 30px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+
+.login-logo {
+    font-size: 3rem;
+    color: var(--primary-color);
+    margin-bottom: 20px;
+}
+
+.login-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.login-subtitle {
+    color: #666;
+    margin-bottom: 30px;
+    font-size: 1rem;
+}
+
+.login-btn {
+    width: 100%;
+    padding: 15px;
+    font-size: 1.1rem;
+    border-radius: 50px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.3s;
+}
+
+.login-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+
+.login-footer {
+    margin-top: 30px;
+    font-size: 0.9rem;
+    color: #888;
 }

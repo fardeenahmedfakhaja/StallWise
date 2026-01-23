@@ -1285,7 +1285,7 @@ class RestaurantOrderSystem {
                     <td>
                         <div class="d-flex gap-2">
                             <button class="btn btn-sm btn-outline-primary view-order-btn" data-order-id="${order.id}" title="View Order">
-                                <i class="fas fa-eye"></i> View
+                                <i class="fas fa-eye"></i>
                             </button>
                             <button class="btn btn-sm btn-success complete-order-btn" data-order-id="${order.id}" title="Complete Order">
                                 <i class="fas fa-check me-1"></i> Complete

@@ -29,552 +29,6 @@
     
     <!-- App Icon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍽️</text></svg>">
-    
-    <style>
-        /* Mobile-specific enhancements */
-        @media (max-width: 768px) {
-            .menu-item-card {
-                min-height: 140px;
-                margin: 5px;
-            }
-            
-            .menu-item-quantity {
-                padding: 6px;
-            }
-            
-            .quantity-btn {
-                width: 32px;
-                height: 32px;
-                font-size: 0.9rem;
-            }
-            
-            .quantity-input {
-                width: 40px;
-                padding: 4px;
-            }
-            
-            .stats-grid {
-                grid-template-columns: repeat(3, 1fr);
-                gap: 8px;
-            }
-            
-            .stat-item {
-                padding: 10px 5px;
-            }
-            
-            .stat-value {
-                font-size: 1.2rem;
-            }
-            
-            .table-responsive {
-                margin: 0 -15px;
-                width: calc(100% + 30px);
-            }
-            
-            .table {
-                font-size: 0.85rem;
-            }
-            
-            .table th,
-            .table td {
-                padding: 8px 4px;
-                white-space: nowrap;
-            }
-            
-            .btn-action-group {
-                display: flex;
-                flex-wrap: nowrap;
-                gap: 4px;
-            }
-            
-            .btn-action-group .btn {
-                padding: 4px 8px;
-                font-size: 0.8rem;
-            }
-            
-            .order-card-mobile {
-                margin-bottom: 10px;
-                border-radius: 10px;
-                overflow: hidden;
-            }
-            
-            .order-card-header {
-                background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-                color: white;
-                padding: 10px 15px;
-            }
-            
-            .order-card-body {
-                padding: 15px;
-            }
-            
-            .order-info-row {
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 5px;
-            }
-            
-            .order-items-list {
-                margin-top: 10px;
-                padding-top: 10px;
-                border-top: 1px solid #eee;
-            }
-            
-            .order-item-mobile {
-                display: flex;
-                justify-content: space-between;
-                padding: 5px 0;
-                border-bottom: 1px solid #f5f5f5;
-            }
-            
-            /* Improved menu grid for mobile */
-            .menu-grid-mobile {
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                gap: 10px;
-                margin: 0 -5px;
-            }
-            
-            .menu-grid-mobile .menu-item-col {
-                padding: 0 5px;
-            }
-            
-            .menu-item-card {
-                height: 160px;
-                display: flex;
-                flex-direction: column;
-                justify-content: space-between;
-                margin: 0;
-            }
-            
-            .menu-item-name {
-                font-size: 0.9rem;
-                line-height: 1.2;
-                margin-bottom: 8px;
-                display: -webkit-box;
-                -webkit-line-clamp: 2;
-                -webkit-box-orient: vertical;
-                overflow: hidden;
-            }
-            
-            .menu-item-price {
-                font-size: 1rem;
-                margin-bottom: 10px;
-            }
-        }
-        
-        /* Login Page Styles */
-        #login-page {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            z-index: 9999;
-            overflow-y: auto;
-        }
-        
-        #login-page.active {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .login-container {
-            width: 100%;
-            max-width: 400px;
-            padding: 20px;
-        }
-        
-        .login-card {
-            background: white;
-            border-radius: 20px;
-            padding: 40px 30px;
-            text-align: center;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        }
-        
-        .login-logo {
-            font-size: 3rem;
-            color: var(--primary-color);
-            margin-bottom: 20px;
-        }
-        
-        .login-title {
-            font-size: 1.8rem;
-            font-weight: 700;
-            margin-bottom: 10px;
-            color: #333;
-        }
-        
-        .login-subtitle {
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 1rem;
-        }
-        
-        .login-btn {
-            width: 100%;
-            padding: 15px;
-            font-size: 1.1rem;
-            border-radius: 50px;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            transition: all 0.3s;
-        }
-        
-        .login-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-        }
-        
-        .login-footer {
-            margin-top: 30px;
-            font-size: 0.9rem;
-            color: #888;
-        }
-        
-        /* Desktop menu grid */
-        .menu-grid-desktop {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
-        }
-        
-        @media (max-width: 1200px) {
-            .menu-grid-desktop {
-                grid-template-columns: repeat(3, 1fr);
-            }
-        }
-        
-        @media (max-width: 992px) {
-            .menu-grid-desktop {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-        
-        @media (max-width: 768px) {
-            .menu-grid-desktop {
-                display: none;
-            }
-            
-            .menu-grid-mobile {
-                display: grid;
-            }
-        }
-        
-        @media (min-width: 769px) {
-            .menu-grid-mobile {
-                display: none;
-            }
-            
-            .menu-grid-desktop {
-                display: grid;
-            }
-        }
-        
-        /* Enhanced mobile table view */
-        .mobile-table-view {
-            display: none;
-        }
-        
-        .desktop-table-view {
-            display: block;
-        }
-        
-        @media (max-width: 768px) {
-            .mobile-table-view {
-                display: block;
-            }
-            
-            .desktop-table-view {
-                display: none;
-            }
-            
-            .mobile-order-card {
-                background: white;
-                border-radius: 12px;
-                margin-bottom: 15px;
-                overflow: hidden;
-                box-shadow: 0 3px 10px rgba(0,0,0,0.08);
-            }
-            
-            .mobile-order-header {
-                background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-                color: white;
-                padding: 12px 15px;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            }
-            
-            .mobile-order-body {
-                padding: 15px;
-            }
-            
-            .mobile-order-info {
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                gap: 10px;
-                margin-bottom: 15px;
-            }
-            
-            .mobile-order-item {
-                display: flex;
-                justify-content: space-between;
-                padding: 8px 0;
-                border-bottom: 1px solid #f5f5f5;
-            }
-            
-            .mobile-order-actions {
-                display: flex;
-                gap: 8px;
-                margin-top: 15px;
-            }
-            
-            .mobile-order-actions .btn {
-                flex: 1;
-                padding: 10px;
-            }
-        }
-        
-        /* Mobile navigation enhancements */
-        .mobile-bottom-nav {
-            display: none;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: white;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-            z-index: 1000;
-            padding: 10px 0;
-        }
-        
-        @media (max-width: 768px) {
-            .mobile-bottom-nav {
-                display: flex;
-                justify-content: space-around;
-            }
-            
-            .mobile-nav-item {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                text-decoration: none;
-                color: #666;
-                font-size: 0.7rem;
-                padding: 5px 10px;
-                border-radius: 8px;
-                transition: all 0.3s;
-            }
-            
-            .mobile-nav-item.active {
-                color: var(--primary-color);
-                background: rgba(255, 107, 53, 0.1);
-            }
-            
-            .mobile-nav-icon {
-                font-size: 1.2rem;
-                margin-bottom: 3px;
-            }
-            
-            .mobile-nav-badge {
-                position: absolute;
-                top: -5px;
-                right: -5px;
-                background: #dc3545;
-                color: white;
-                border-radius: 50%;
-                width: 18px;
-                height: 18px;
-                font-size: 0.7rem;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-            
-            body {
-                padding-bottom: 70px;
-            }
-        }
-        
-        /* QR Code Modal Fix */
-        .modal-backdrop {
-            z-index: 1050 !important;
-        }
-        
-        .modal {
-            z-index: 1060 !important;
-        }
-        
-        /* Prevent body scroll when modal is open */
-        body.modal-open {
-            overflow: hidden !important;
-            padding-right: 0 !important;
-        }
-        
-        /* QR Code Modal specific fixes */
-        #qrCodeModal .modal-dialog {
-            z-index: 1060;
-        }
-        
-        #qrCodeModal .modal-content {
-            border-radius: 15px;
-            overflow: hidden;
-        }
-        
-        #qrCodeModal .modal-header {
-            background: linear-gradient(135deg, #ff6b35, #e55a2b);
-            color: white;
-            border-bottom: none;
-        }
-        
-        #qrCodeModal .modal-body {
-            padding: 30px;
-        }
-        
-        /* FIX: Ensure proper modal closing */
-        .modal.fade.show {
-            display: block !important;
-        }
-        
-        /* FIX: PDF text rendering */
-        @font-face {
-            font-family: 'PDFFont';
-            src: local('Helvetica'), local('Arial');
-        }
-        
-        /* FIX: Loading overlay z-index */
-        .loading-overlay {
-            z-index: 99999 !important;
-        }
-        
-        /* FIX: QR code image cursor */
-        #profile-qr-code {
-            cursor: pointer;
-            transition: transform 0.3s ease;
-            border: 2px solid #e1e5e9;
-        }
-        
-        #profile-qr-code:hover {
-            transform: scale(1.05);
-            border-color: #ff6b35;
-        }
-        
-        /* FIX: Modal cleanup animation */
-        .modal.fade:not(.show) {
-            opacity: 0;
-            transition: opacity 0.15s linear;
-        }
-        
-        /* FIX: Ensure proper stacking context */
-        .navbar {
-            z-index: 1000 !important;
-        }
-        
-        .main-content {
-            position: relative;
-            z-index: 1;
-        }
-        
-        /* Improved menu item cards */
-        .menu-item-card {
-            border: 1px solid #e9ecef;
-            border-radius: 8px;
-            padding: 15px;
-            cursor: pointer;
-            transition: all 0.3s;
-            background: white;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            min-height: 120px;
-        }
-        
-        .menu-item-card:hover {
-            border-color: var(--primary-color);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-        }
-        
-        .menu-item-card.selected {
-            background-color: rgba(255, 107, 53, 0.1);
-            border-color: var(--primary-color);
-        }
-        
-        .menu-item-name {
-            font-weight: 600;
-            color: var(--dark-color);
-            margin-bottom: 5px;
-            font-size: 0.95rem;
-        }
-        
-        .menu-item-price {
-            font-weight: 700;
-            color: var(--primary-color);
-            font-size: 1.1rem;
-        }
-        
-        .menu-item-quantity {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-top: 10px;
-            background: #f8f9fa;
-            padding: 8px;
-            border-radius: 6px;
-        }
-        
-        .quantity-btn {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 1.1rem;
-            transition: all 0.3s;
-            cursor: pointer;
-        }
-        
-        .quantity-btn:hover:not(:disabled) {
-            background: var(--primary-dark);
-            transform: scale(1.1);
-        }
-        
-        .quantity-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        
-        .quantity-input {
-            width: 50px;
-            text-align: center;
-            border: 2px solid #dee2e6;
-            border-radius: 5px;
-            padding: 6px;
-            font-weight: bold;
-            background: white;
-            font-size: 1rem;
-        }
-        
-        .quantity-input:focus {
-            border-color: var(--primary-color);
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.25);
-        }
-    </style>
 </head>
 <body>
     <!-- Loading Overlay -->
@@ -587,140 +41,69 @@
         </div>
     </div>
 
-    <!-- Login Page -->
-    <div id="login-page" class="active">
+    <!-- Login Screen -->
+    <div id="login-screen" class="login-screen active">
         <div class="login-container">
             <div class="login-card">
-                <div class="login-logo">
-                    <i class="fas fa-store"></i>
+                <div class="login-header">
+                    <i class="fas fa-store fa-4x text-primary mb-3"></i>
+                    <h1 class="login-title">Stall Wise</h1>
+                    <p class="login-subtitle">Point of Sale System</p>
                 </div>
-                <h1 class="login-title">Stall Wise</h1>
-                <p class="login-subtitle">Manage your stall operations efficiently</p>
                 
-                <button class="btn btn-primary login-btn" id="google-login-btn">
-                    <i class="fab fa-google me-2"></i> Sign in with Google
-                </button>
-                
-                <div class="login-footer">
-                    <p>By signing in, you agree to our Terms of Service and Privacy Policy</p>
-                    <p class="mt-2">Version 2.0 • Mobile Enhanced</p>
+                <div class="login-body">
+                    <div class="welcome-text mb-4">
+                        <h4>Welcome Back!</h4>
+                        <p class="text-muted">Sign in to manage your stall</p>
+                    </div>
+                    
+                    <button class="btn btn-lg btn-primary w-100 mb-3" id="google-signin-btn">
+                        <i class="fab fa-google me-2"></i> Sign in with Google
+                    </button>
+                    
+                    <div class="login-features mt-4">
+                        <div class="feature-item">
+                            <i class="fas fa-bolt text-primary"></i>
+                            <span>Fast Order Processing</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-chart-line text-primary"></i>
+                            <span>Real-time Analytics</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-mobile-alt text-primary"></i>
+                            <span>Mobile Optimized</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-cloud text-primary"></i>
+                            <span>Cloud Backup</span>
+                        </div>
+                    </div>
+                    
+                    <div class="text-muted small mt-4">
+                        <p>By signing in, you agree to our Terms of Service and Privacy Policy</p>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Main App (Initially Hidden) -->
-    <div id="main-app" style="display: none;">
-        <!-- QR Code Modal (Fixed for mobile) -->
-        <div class="modal fade" id="qrCodeModal" tabindex="-1" aria-labelledby="qrCodeModalLabel" aria-hidden="true">
+    <!-- Main App Content (Hidden until logged in) -->
+    <div id="app-content" style="display: none;">
+        <!-- QR Code Modal - FIXED with better close handling -->
+        <div class="modal fade" id="qrCodeModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="qrCodeModalLabel">Payment QR Code</h5>
+                        <h5 class="modal-title">Payment QR Code</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body text-center">
-                        <div id="qr-code-container" style="max-height: 400px; overflow-y: auto;">
-                            <img id="qrCodeImage" src="" alt="QR Code" class="img-fluid" style="max-width: 100%;">
-                        </div>
-                        <p class="text-muted mt-3">Scan this QR code to make payment</p>
+                        <img id="qrCodeImage" src="" alt="QR Code" class="img-fluid mb-3" style="max-height: 300px;">
+                        <p class="text-muted">Scan this QR code to make payment</p>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Profile Setup Modal -->
-        <div class="modal fade" id="profileSetupModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Setup Your Stall</h5>
-                    </div>
-                    <div class="modal-body">
-                        <p>Welcome! Please setup your stall profile to get started.</p>
-                        
-                        <form id="initial-profile-form">
-                            <div class="mb-3">
-                                <label class="form-label">Stall Name *</label>
-                                <input type="text" class="form-control" id="initial-business-name" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Business Type</label>
-                                <select class="form-select" id="initial-business-type">
-                                    <option value="restaurant">Restaurant</option>
-                                    <option value="cafe">Cafe</option>
-                                    <option value="food-truck">Food Truck</option>
-                                    <option value="catering">Catering Service</option>
-                                    <option value="event">Event Stall</option>
-                                    <option value="other">Other</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Contact Phone</label>
-                                <input type="tel" class="form-control" id="initial-business-phone">
-                            </div>
-                        </form>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-primary" id="save-initial-profile-btn">
-                            Save & Continue
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Order Details Modal -->
-        <div class="modal fade" id="orderDetailsModal" tabindex="-1">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Order Details - #<span id="modal-order-no"></span></h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                
-                    <div class="modal-body">
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <p><strong>Customer:</strong> <span id="modal-customer"></span></p>
-                                <p><strong>Phone:</strong> <span id="modal-phone"></span></p>
-                            </div>
-                            <div class="col-md-6">
-                                <p><strong>Order Time:</strong> <span id="modal-order-time"></span></p>
-                                <p><strong>Order Type:</strong> <span id="modal-order-type"></span></p>
-                            </div>
-                        </div>
-                        
-                        <div class="table-responsive">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Item</th>
-                                        <th>Qty</th>
-                                        <th>Price</th>
-                                        <th>Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="modal-items-body">
-                                    <!-- Items will be loaded here -->
-                                </tbody>
-                            </table>
-                        </div>
-                        
-                        <div class="mt-3">
-                            <table class="table table-sm">
-                                <tbody id="modal-total">
-                                    <!-- Total will be calculated here -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="button" class="btn btn-success" id="complete-order-btn" data-order-id="">Complete Order</button>
                     </div>
                 </div>
             </div>
@@ -741,52 +124,39 @@
                         <li class="nav-item">
                             <a class="nav-link active" href="#" data-tab="take-order">
                                 <i class="fas fa-plus-circle me-1"></i>
-                                <span class="nav-text d-none d-md-inline">New Order</span>
-                                <span class="d-inline d-md-none">New</span>
+                                <span class="nav-text">New Order</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="#" data-tab="ongoing-orders">
                                 <i class="fas fa-clock me-1"></i>
-                                <span class="nav-text d-none d-md-inline">Ongoing</span>
-                                <span class="d-inline d-md-none">Ongoing</span>
+                                <span class="nav-text">Ongoing</span>
                                 <span class="badge bg-warning ms-1" id="ongoing-badge">0</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="#" data-tab="completed-orders">
                                 <i class="fas fa-check-circle me-1"></i>
-                                <span class="nav-text d-none d-md-inline">Completed</span>
-                                <span class="d-inline d-md-none">Done</span>
+                                <span class="nav-text">Completed</span>
                                 <span class="badge bg-success ms-1" id="completed-badge">0</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="#" data-tab="menu-management">
                                 <i class="fas fa-edit me-1"></i>
-                                <span class="nav-text d-none d-md-inline">Menu</span>
-                                <span class="d-inline d-md-none">Menu</span>
+                                <span class="nav-text">Menu</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="#" data-tab="analytics">
                                 <i class="fas fa-chart-line me-1"></i>
-                                <span class="nav-text d-none d-md-inline">Analytics</span>
-                                <span class="d-inline d-md-none">Stats</span>
+                                <span class="nav-text">Analytics</span>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#" data-tab="profile" id="profile-nav-link">
+                            <a class="nav-link" href="#" data-tab="profile" id="profile-nav-link" data-longpress="true">
                                 <i class="fas fa-user-circle me-1"></i>
-                                <span class="nav-text d-none d-md-inline">Profile</span>
-                                <span class="d-inline d-md-none">Me</span>
-                            </a>
-                        </li>
-                        <li class="nav-item d-md-none">
-                            <a class="nav-link" href="#" id="mobile-logout-btn">
-                                <i class="fas fa-sign-out-alt me-1"></i>
-                                <span class="nav-text d-none d-md-inline">Logout</span>
-                                <span class="d-inline d-md-none">Exit</span>
+                                <span class="nav-text">Profile</span>
                             </a>
                         </li>
                     </ul>
@@ -794,67 +164,41 @@
             </div>
         </nav>
 
-        <!-- Mobile Bottom Navigation -->
-        <div class="mobile-bottom-nav d-md-none">
-            <a href="#" class="mobile-nav-item active" data-tab="take-order">
-                <i class="fas fa-plus-circle mobile-nav-icon"></i>
-                <span>New</span>
-            </a>
-            <a href="#" class="mobile-nav-item" data-tab="ongoing-orders">
-                <i class="fas fa-clock mobile-nav-icon"></i>
-                <span>Ongoing</span>
-                <span class="mobile-nav-badge" id="mobile-ongoing-badge">0</span>
-            </a>
-            <a href="#" class="mobile-nav-item" data-tab="completed-orders">
-                <i class="fas fa-check-circle mobile-nav-icon"></i>
-                <span>Done</span>
-                <span class="mobile-nav-badge" id="mobile-completed-badge">0</span>
-            </a>
-            <a href="#" class="mobile-nav-item" data-tab="menu-management">
-                <i class="fas fa-edit mobile-nav-icon"></i>
-                <span>Menu</span>
-            </a>
-            <a href="#" class="mobile-nav-item" data-tab="profile">
-                <i class="fas fa-user-circle mobile-nav-icon"></i>
-                <span>Me</span>
-            </a>
-        </div>
-
         <!-- Main Content -->
         <div class="container-fluid main-content">
-            <!-- Take Order Tab -->
+            <!-- Take Order Tab - ENHANCED MOBILE VIEW -->
             <div id="take-order" class="tab-content active">
-                <div class="row g-2">
+                <div class="row g-3">
                     <!-- Left Column -->
                     <div class="col-lg-8">
                         <!-- Customer Info Card -->
-                        <div class="card">
+                        <div class="card mobile-card">
                             <div class="card-header">
                                 <h5 class="card-title mb-0">
                                     <i class="fas fa-user me-2"></i>Customer Information
                                 </h5>
                             </div>
                             <div class="card-body">
-                                <div class="row g-2">
-                                    <div class="col-md-6">
+                                <div class="row g-3">
+                                    <div class="col-md-6 col-12">
                                         <label class="form-label">Customer Name (Optional)</label>
-                                        <input type="text" class="form-control" id="customer-name" placeholder="Enter name">
+                                        <input type="text" class="form-control mobile-input" id="customer-name" placeholder="Enter name">
                                     </div>
-                                    <div class="col-md-6">
+                                    <div class="col-md-6 col-12">
                                         <label class="form-label">Phone Number (Optional)</label>
-                                        <input type="tel" class="form-control" id="customer-phone" placeholder="Enter phone">
+                                        <input type="tel" class="form-control mobile-input" id="customer-phone" placeholder="Enter phone">
                                     </div>
-                                    <div class="col-md-6">
+                                    <div class="col-md-6 col-12">
                                         <label class="form-label">Order Type</label>
-                                        <select class="form-select" id="order-type">
+                                        <select class="form-select mobile-select" id="order-type">
                                             <option value="dine-in">Dine In</option>
                                             <option value="takeaway">Takeaway</option>
                                             <option value="delivery">Delivery</option>
                                         </select>
                                     </div>
-                                    <div class="col-md-6">
+                                    <div class="col-md-6 col-12">
                                         <label class="form-label">Payment Method</label>
-                                        <select class="form-select" id="payment-method">
+                                        <select class="form-select mobile-select" id="payment-method">
                                             <option value="cash">Cash</option>
                                             <option value="card">Card</option>
                                             <option value="upi">UPI</option>
@@ -864,82 +208,78 @@
                             </div>
                         </div>
 
-                        <!-- Menu Items Card -->
-                        <div class="card mt-3">
+                        <!-- Menu Items Card - ENHANCED FOR MOBILE -->
+                        <div class="card mt-3 mobile-card">
                             <div class="card-header d-flex justify-content-between align-items-center">
                                 <h5 class="card-title mb-0">
                                     <i class="fas fa-utensils me-2"></i>Menu Items
                                 </h5>
                                 <div class="search-box">
-                                    <input type="text" class="form-control form-control-sm" id="menu-search" placeholder="Search items...">
+                                    <input type="text" class="form-control form-control-sm mobile-search" id="menu-search" placeholder="Search items...">
                                 </div>
                             </div>
                             <div class="card-body">
-                                <!-- Desktop Grid View -->
-                                <div class="menu-grid-desktop" id="menu-items-desktop">
-                                    <!-- Desktop menu items will be loaded here -->
+                                <!-- Mobile Category Filter -->
+                                <div class="mobile-category-filter mb-3 d-lg-none">
+                                    <div class="scrollable-categories">
+                                        <button class="category-filter-btn active" data-category="all">All</button>
+                                        <!-- Categories will be added here dynamically -->
+                                    </div>
                                 </div>
                                 
-                                <!-- Mobile Grid View -->
-                                <div class="menu-grid-mobile" id="menu-items-mobile">
-                                    <!-- Mobile menu items will be loaded here -->
+                                <div class="row g-2" id="menu-items-container">
+                                    <!-- Menu items will be loaded here -->
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Selected Items Card -->
-                        <div class="card mt-3">
-                            <div class="card-header d-flex justify-content-between align-items-center">
+                        <!-- Selected Items Card - ENHANCED FOR MOBILE -->
+                        <div class="card mt-3 mobile-card">
+                            <div class="card-header">
                                 <h5 class="card-title mb-0">
                                     <i class="fas fa-shopping-cart me-2"></i>Selected Items
                                 </h5>
-                                <span class="badge bg-primary" id="selected-count">0 items</span>
                             </div>
                             <div class="card-body">
-                                <div class="desktop-table-view">
-                                    <div class="table-responsive">
-                                        <table class="table table-hover" id="selected-items-table">
-                                            <thead>
-                                                <tr>
-                                                    <th>Item</th>
-                                                    <th>Qty</th>
-                                                    <th>Price</th>
-                                                    <th>Subtotal</th>
-                                                    <th>Tax</th>
-                                                    <th class="text-end">Action</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="selected-items-body">
-                                                <tr>
-                                                    <td colspan="6" class="text-center text-muted py-4">
-                                                        No items selected
-                                                    </td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                <!-- Mobile Selected Items View -->
+                                <div class="mobile-selected-items" id="mobile-selected-items">
+                                    <!-- Mobile items will be loaded here -->
                                 </div>
                                 
-                                <div class="mobile-table-view">
-                                    <div id="selected-items-mobile">
-                                        <!-- Mobile selected items will be loaded here -->
-                                        <div class="text-center text-muted py-4">
-                                            No items selected
-                                        </div>
-                                    </div>
+                                <!-- Desktop Table View -->
+                                <div class="table-responsive d-none d-lg-block">
+                                    <table class="table table-hover" id="selected-items-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Item</th>
+                                                <th>Qty</th>
+                                                <th>Price</th>
+                                                <th>Subtotal</th>
+                                                <th>Tax</th>
+                                                <th class="text-end">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="selected-items-body">
+                                            <tr>
+                                                <td colspan="6" class="text-center text-muted py-4">
+                                                    No items selected
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Action Buttons -->
-                        <div class="row mt-3 g-2">
+                        <!-- Action Buttons - ENHANCED FOR MOBILE -->
+                        <div class="row mt-3 g-2 mobile-action-buttons">
                             <div class="col-6">
-                                <button class="btn btn-outline-secondary w-100" id="clear-order-btn">
+                                <button class="btn btn-outline-secondary w-100 mobile-btn" id="clear-order-btn">
                                     <i class="fas fa-times me-1"></i> Clear
                                 </button>
                             </div>
                             <div class="col-6">
-                                <button class="btn btn-success w-100" id="place-order-btn">
+                                <button class="btn btn-success w-100 mobile-btn" id="place-order-btn">
                                     <i class="fas fa-check me-1"></i> Place Order
                                 </button>
                             </div>
@@ -949,7 +289,7 @@
                     <!-- Right Column -->
                     <div class="col-lg-4">
                         <!-- Order Summary Card -->
-                        <div class="card">
+                        <div class="card mobile-card">
                             <div class="card-header">
                                 <h5 class="card-title mb-0">
                                     <i class="fas fa-receipt me-2"></i>Order Summary
@@ -993,7 +333,7 @@
                         </div>
 
                         <!-- Quick Stats Card -->
-                        <div class="card mt-3">
+                        <div class="card mt-3 mobile-card">
                             <div class="card-header">
                                 <h5 class="card-title mb-0">
                                     <i class="fas fa-chart-bar me-2"></i>Today's Stats
@@ -1018,7 +358,7 @@
                         </div>
 
                         <!-- Quick Actions Card -->
-                        <div class="card mt-3">
+                        <div class="card mt-3 mobile-card">
                             <div class="card-header">
                                 <h5 class="card-title mb-0">
                                     <i class="fas fa-bolt me-2"></i>Quick Actions
@@ -1034,25 +374,30 @@
                 </div>
             </div>
 
-            <!-- Ongoing Orders Tab -->
+            <!-- Ongoing Orders Tab - ENHANCED MOBILE VIEW -->
             <div id="ongoing-orders" class="tab-content">
-                <div class="card">
+                <div class="card mobile-card">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">
                             <i class="fas fa-clock me-2"></i>Ongoing Orders
                         </h5>
                         <div class="d-flex gap-2">
-                            <button class="btn btn-sm btn-outline-primary" id="refresh-orders-btn">
+                            <button class="btn btn-sm btn-outline-primary mobile-icon-btn" id="refresh-orders-btn">
                                 <i class="fas fa-sync-alt"></i>
                             </button>
-                            <button class="btn btn-sm btn-outline-success" id="print-all-btn">
+                            <button class="btn btn-sm btn-outline-success mobile-icon-btn" id="print-all-btn">
                                 <i class="fas fa-print"></i>
                             </button>
                         </div>
                     </div>
                     <div class="card-body">
+                        <!-- Mobile Ongoing Orders View -->
+                        <div class="mobile-orders-list" id="mobile-ongoing-orders">
+                            <!-- Mobile orders will be loaded here -->
+                        </div>
+                        
                         <!-- Desktop Table View -->
-                        <div class="table-responsive desktop-table-view">
+                        <div class="table-responsive d-none d-lg-block">
                             <table class="table table-hover">
                                 <thead>
                                     <tr>
@@ -1071,12 +416,6 @@
                                 </tbody>
                             </table>
                         </div>
-                        
-                        <!-- Mobile Card View -->
-                        <div class="mobile-table-view" id="ongoing-orders-mobile">
-                            <!-- Mobile order cards will be loaded here -->
-                        </div>
-                        
                         <div id="no-ongoing-orders" class="text-center py-5">
                             <i class="fas fa-clipboard-list fa-3x mb-3 text-muted"></i>
                             <h5>No Ongoing Orders</h5>
@@ -1086,25 +425,30 @@
                 </div>
             </div>
 
-            <!-- Completed Orders Tab -->
+            <!-- Completed Orders Tab - ENHANCED MOBILE VIEW -->
             <div id="completed-orders" class="tab-content">
-                <div class="row g-2">
+                <div class="row g-3">
                     <div class="col-lg-8">
-                        <div class="card">
+                        <div class="card mobile-card">
                             <div class="card-header d-flex justify-content-between align-items-center">
                                 <h5 class="card-title mb-0">
                                     <i class="fas fa-check-circle me-2"></i>Completed Orders
                                 </h5>
                                 <div class="d-flex gap-2 align-items-center">
-                                    <input type="date" class="form-control form-control-sm" id="date-from" style="width: 150px;">
-                                    <span>to</span>
-                                    <input type="date" class="form-control form-control-sm" id="date-to" style="width: 150px;">
-                                    <button class="btn btn-sm btn-primary" id="apply-date-filter">Apply</button>
+                                    <input type="date" class="form-control form-control-sm mobile-date-input" id="date-from" style="width: 150px;">
+                                    <span class="d-none d-md-block">to</span>
+                                    <input type="date" class="form-control form-control-sm mobile-date-input" id="date-to" style="width: 150px;">
+                                    <button class="btn btn-sm btn-primary mobile-filter-btn" id="apply-date-filter">Apply</button>
                                 </div>
                             </div>
                             <div class="card-body">
+                                <!-- Mobile Completed Orders View -->
+                                <div class="mobile-completed-list" id="mobile-completed-orders">
+                                    <!-- Mobile completed orders will be loaded here -->
+                                </div>
+                                
                                 <!-- Desktop Table View -->
-                                <div class="table-responsive desktop-table-view">
+                                <div class="table-responsive d-none d-lg-block">
                                     <table class="table table-hover">
                                         <thead>
                                             <tr>
@@ -1122,12 +466,6 @@
                                         </tbody>
                                     </table>
                                 </div>
-                                
-                                <!-- Mobile Card View -->
-                                <div class="mobile-table-view" id="completed-orders-mobile">
-                                    <!-- Mobile completed order cards will be loaded here -->
-                                </div>
-                                
                                 <div id="no-completed-orders" class="text-center py-5">
                                     <i class="fas fa-check fa-3x mb-3 text-muted"></i>
                                     <h5>No Completed Orders</h5>
@@ -1138,7 +476,7 @@
                     </div>
 
                     <div class="col-lg-4">
-                        <div class="card">
+                        <div class="card mobile-card">
                             <div class="card-header">
                                 <h5 class="card-title mb-0">
                                     <i class="fas fa-chart-pie me-2"></i>Sales Summary
@@ -1190,11 +528,11 @@
                                 </div>
 
                                 <div class="d-grid gap-2 mt-3">
-                                    <button class="btn btn-primary" id="download-pdf-btn">
-                                        <i class="fas fa-download me-1"></i> Download PDF Report
+                                    <button class="btn btn-primary mobile-btn" id="download-pdf-btn">
+                                        <i class="fas fa-download me-1"></i> Download PDF
                                     </button>
-                                    <button class="btn btn-outline-danger" id="clear-completed-btn">
-                                        <i class="fas fa-trash me-1"></i> Clear All Completed
+                                    <button class="btn btn-outline-danger mobile-btn" id="clear-completed-btn">
+                                        <i class="fas fa-trash me-1"></i> Clear All
                                     </button>
                                 </div>
                             </div>
@@ -1203,21 +541,27 @@
                 </div>
             </div>
 
-            <!-- Menu Management Tab -->
+            <!-- Menu Management Tab - ENHANCED MOBILE VIEW -->
             <div id="menu-management" class="tab-content">
-                <div class="row g-2">
+                <div class="row g-3">
                     <div class="col-lg-8">
-                        <div class="card">
+                        <div class="card mobile-card">
                             <div class="card-header d-flex justify-content-between align-items-center">
                                 <h5 class="card-title mb-0">
                                     <i class="fas fa-edit me-2"></i>Menu Management
                                 </h5>
-                                <button class="btn btn-sm btn-primary" id="add-category-btn">
-                                    <i class="fas fa-plus me-1"></i> Add Category
+                                <button class="btn btn-sm btn-primary mobile-icon-btn" id="add-category-btn">
+                                    <i class="fas fa-plus me-1"></i> <span class="d-none d-md-inline">Add Category</span>
                                 </button>
                             </div>
                             <div class="card-body">
-                                <div class="table-responsive">
+                                <!-- Mobile Menu List -->
+                                <div class="mobile-menu-list" id="mobile-menu-list">
+                                    <!-- Mobile menu items will be loaded here -->
+                                </div>
+                                
+                                <!-- Desktop Table View -->
+                                <div class="table-responsive d-none d-lg-block">
                                     <table class="table table-hover">
                                         <thead>
                                             <tr>
@@ -1241,7 +585,7 @@
                     </div>
 
                     <div class="col-lg-4">
-                        <div class="card">
+                        <div class="card mobile-card">
                             <div class="card-header">
                                 <h5 class="card-title mb-0">
                                     <i class="fas fa-plus-circle me-2"></i>Add/Edit Menu Item
@@ -1252,20 +596,20 @@
                                     <div class="mb-3">
                                         <label class="form-label">Category</label>
                                         <div class="input-group">
-                                            <select class="form-select" id="item-category" required>
+                                            <select class="form-select mobile-select" id="item-category" required>
                                                 <option value="">Select Category</option>
                                             </select>
-                                            <button class="btn btn-outline-secondary" type="button" id="new-category-btn">
+                                            <button class="btn btn-outline-secondary mobile-icon-btn" type="button" id="new-category-btn">
                                                 <i class="fas fa-plus"></i>
                                             </button>
                                         </div>
                                         <div class="mt-2" id="new-category-input" style="display: none;">
                                             <div class="input-group">
-                                                <input type="text" class="form-control" id="new-category-name" placeholder="New category">
-                                                <button class="btn btn-success" type="button" id="save-category-btn">
+                                                <input type="text" class="form-control mobile-input" id="new-category-name" placeholder="New category">
+                                                <button class="btn btn-success mobile-icon-btn" type="button" id="save-category-btn">
                                                     <i class="fas fa-check"></i>
                                                 </button>
-                                                <button class="btn btn-secondary" type="button" id="cancel-category-btn">
+                                                <button class="btn btn-secondary mobile-icon-btn" type="button" id="cancel-category-btn">
                                                     <i class="fas fa-times"></i>
                                                 </button>
                                             </div>
@@ -1274,35 +618,34 @@
 
                                     <div class="mb-3">
                                         <label class="form-label">Item Name</label>
-                                        <input type="text" class="form-control" id="item-name" required>
+                                        <input type="text" class="form-control mobile-input" id="item-name" required>
                                     </div>
 
                                     <div class="row mb-3">
-                                        <div class="col-md-6">
+                                        <div class="col-md-6 col-6">
                                             <label class="form-label">Price (₹)</label>
-                                            <input type="number" class="form-control" id="item-price" min="1" step="0.01" required>
+                                            <input type="number" class="form-control mobile-input" id="item-price" min="1" step="0.01" required>
                                         </div>
-                                        <div class="col-md-6">
+                                        <div class="col-md-6 col-6">
                                             <label class="form-label">Cost (₹)</label>
-                                            <input type="number" class="form-control" id="item-cost" min="0" step="0.01" required>
-                                            <div class="form-text">Cost to make this item</div>
+                                            <input type="number" class="form-control mobile-input" id="item-cost" min="0" step="0.01" required>
+                                            <div class="form-text small">Cost to make</div>
                                         </div>
                                     </div>
 
                                     <div class="row mb-3">
-                                        <div class="col-md-6">
+                                        <div class="col-md-6 col-6">
                                             <label class="form-label">Tax (%)</label>
-                                            <input type="number" class="form-control" id="item-tax" min="0" max="100" step="0.1" value="0">
-                                            <div class="form-text">Tax percentage applied to this item</div>
+                                            <input type="number" class="form-control mobile-input" id="item-tax" min="0" max="100" step="0.1" value="0">
+                                            <div class="form-text small">Tax percentage</div>
                                         </div>
-                                        <div class="col-md-6">
+                                        <div class="col-md-6 col-6">
                                             <label class="form-label">Stock Status</label>
                                             <div class="form-check mt-2">
                                                 <input class="form-check-input" type="checkbox" id="item-out-of-stock">
-                                                <label class="form-check-label" for="item-out-of-stock">
-                                                    Mark as Out of Stock
+                                                <label class="form-check-label small" for="item-out-of-stock">
+                                                    Out of Stock
                                                 </label>
-                                                <div class="form-text">Out of stock items won't appear in new orders</div>
                                             </div>
                                         </div>
                                     </div>
@@ -1310,10 +653,10 @@
                                     <input type="hidden" id="edit-item-id">
                                     
                                     <div class="d-grid gap-2">
-                                        <button type="submit" class="btn btn-success">
+                                        <button type="submit" class="btn btn-success mobile-btn">
                                             <i class="fas fa-save me-1"></i> Save Item
                                         </button>
-                                        <button type="button" class="btn btn-secondary" id="cancel-edit-btn">
+                                        <button type="button" class="btn btn-secondary mobile-btn" id="cancel-edit-btn">
                                             <i class="fas fa-times me-1"></i> Cancel Edit
                                         </button>
                                     </div>
@@ -1322,11 +665,10 @@
                                 <div class="alert alert-info mt-3">
                                     <h6><i class="fas fa-lightbulb me-2"></i>Tips</h6>
                                     <ul class="mb-0 small">
-                                        <li>Click on any item to edit it</li>
-                                        <li>Add new categories using the + button</li>
-                                        <li>Mark categories as favorites for quick access</li>
-                                        <li>Out of stock items are hidden from new orders</li>
-                                        <li>Tax is calculated automatically for each item</li>
+                                        <li>Tap any item to edit it</li>
+                                        <li>Add new categories using + button</li>
+                                        <li>Mark categories as favorites</li>
+                                        <li>Out of stock items are hidden</li>
                                     </ul>
                                 </div>
                             </div>
@@ -1335,25 +677,30 @@
                 </div>
             </div>
 
-            <!-- Analytics Tab -->
+            <!-- Analytics Tab - ENHANCED MOBILE VIEW -->
             <div id="analytics" class="tab-content">
-                <div class="row g-2">
+                <div class="row g-3">
                     <div class="col-lg-8">
-                        <div class="card">
+                        <div class="card mobile-card">
                             <div class="card-header d-flex justify-content-between align-items-center">
                                 <h5 class="card-title mb-0">
                                     <i class="fas fa-chart-line me-2"></i>Sales Analytics
                                 </h5>
                                 <div class="d-flex gap-2 align-items-center">
-                                    <input type="date" class="form-control form-control-sm" id="analytics-date-from" style="width: 150px;">
-                                    <span>to</span>
-                                    <input type="date" class="form-control form-control-sm" id="analytics-date-to" style="width: 150px;">
-                                    <button class="btn btn-sm btn-primary" id="apply-analytics-filter">Apply</button>
+                                    <input type="date" class="form-control form-control-sm mobile-date-input" id="analytics-date-from" style="width: 150px;">
+                                    <span class="d-none d-md-block">to</span>
+                                    <input type="date" class="form-control form-control-sm mobile-date-input" id="analytics-date-to" style="width: 150px;">
+                                    <button class="btn btn-sm btn-primary mobile-filter-btn" id="apply-analytics-filter">Apply</button>
                                 </div>
                             </div>
                             <div class="card-body">
-                                <!-- Main Charts Row -->
-                                <div class="row g-3 mb-4">
+                                <!-- Mobile Charts View -->
+                                <div class="mobile-charts" id="mobile-charts">
+                                    <!-- Mobile charts will be loaded here -->
+                                </div>
+                                
+                                <!-- Desktop Charts -->
+                                <div class="row g-3 mb-4 d-none d-lg-flex">
                                     <div class="col-md-6">
                                         <div class="chart-container">
                                             <canvas id="revenueProfitChart"></canvas>
@@ -1364,50 +711,13 @@
                                             <canvas id="categoryRevenueChart"></canvas>
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="chart-container">
-                                            <canvas id="categoryProfitChart"></canvas>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="chart-container">
-                                            <canvas id="topItemsRevenueChart"></canvas>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Category-wise Item Performance -->
-                                <div class="row">
-                                    <div class="col-12">
-                                        <h6 class="mb-3">Category-wise Item Performance</h6>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="chart-container">
-                                            <canvas id="appetizersChart"></canvas>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="chart-container">
-                                            <canvas id="wrapsChart"></canvas>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="chart-container">
-                                            <canvas id="burgersChart"></canvas>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="chart-container">
-                                            <canvas id="dessertsChart"></canvas>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <div class="col-lg-4">
-                        <div class="card">
+                        <div class="card mobile-card">
                             <div class="card-header">
                                 <h5 class="card-title mb-0">
                                     <i class="fas fa-chart-pie me-2"></i>Performance Summary
@@ -1445,40 +755,9 @@
                                 </div>
 
                                 <div class="summary-box mb-4">
-                                    <h6>Top Performing Categories</h6>
-                                    <div class="table-responsive">
-                                        <table class="table table-sm">
-                                            <thead>
-                                                <tr>
-                                                    <th>Category</th>
-                                                    <th>Revenue</th>
-                                                    <th>Profit</th>
-                                                    <th>Margin</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="category-performance-body">
-                                                <!-- Category performance will be loaded here -->
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-
-                                <div class="summary-box">
-                                    <h6>Best Selling Items</h6>
-                                    <div class="table-responsive">
-                                        <table class="table table-sm">
-                                            <thead>
-                                                <tr>
-                                                    <th>Item</th>
-                                                    <th>Qty</th>
-                                                    <th>Revenue</th>
-                                                    <th>Profit</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="best-items-body">
-                                                <!-- Best items will be loaded here -->
-                                            </tbody>
-                                        </table>
+                                    <h6>Top Performing Items</h6>
+                                    <div class="mobile-best-items" id="mobile-best-items">
+                                        <!-- Mobile best items will be loaded here -->
                                     </div>
                                 </div>
                             </div>
@@ -1487,11 +766,11 @@
                 </div>
             </div>
 
-            <!-- Profile Tab -->
+            <!-- Profile Tab - ENHANCED MOBILE VIEW -->
             <div id="profile" class="tab-content">
                 <div class="row">
                     <div class="col-lg-8">
-                        <div class="card">
+                        <div class="card mobile-card">
                             <div class="card-header">
                                 <h5 class="card-title mb-0">
                                     <i class="fas fa-store me-2"></i>Business Profile
@@ -1499,14 +778,14 @@
                             </div>
                             <div class="card-body">
                                 <form id="business-profile-form">
-                                    <div class="row g-2">
-                                        <div class="col-md-6">
+                                    <div class="row g-3">
+                                        <div class="col-md-6 col-12">
                                             <label class="form-label">Business Name *</label>
-                                            <input type="text" class="form-control" id="business-name" required>
+                                            <input type="text" class="form-control mobile-input" id="business-name" required>
                                         </div>
-                                        <div class="col-md-6">
+                                        <div class="col-md-6 col-12">
                                             <label class="form-label">Business Type</label>
-                                            <select class="form-select" id="business-type">
+                                            <select class="form-select mobile-select" id="business-type">
                                                 <option value="restaurant">Restaurant</option>
                                                 <option value="cafe">Cafe</option>
                                                 <option value="food-truck">Food Truck</option>
@@ -1517,43 +796,41 @@
                                         </div>
                                         <div class="col-12">
                                             <label class="form-label">Description</label>
-                                            <textarea class="form-control" id="business-description" rows="3"></textarea>
+                                            <textarea class="form-control mobile-textarea" id="business-description" rows="3"></textarea>
                                         </div>
-                                        <div class="col-md-6">
+                                        <div class="col-md-6 col-12">
                                             <label class="form-label">Contact Phone</label>
-                                            <input type="tel" class="form-control" id="business-phone">
+                                            <input type="tel" class="form-control mobile-input" id="business-phone">
                                         </div>
-                                        <div class="col-md-6">
+                                        <div class="col-md-6 col-12">
                                             <label class="form-label">Contact Email</label>
-                                            <input type="email" class="form-control" id="business-email">
+                                            <input type="email" class="form-control mobile-input" id="business-email">
                                         </div>
                                         <div class="col-12">
                                             <label class="form-label">Address</label>
-                                            <textarea class="form-control" id="business-address" rows="2"></textarea>
+                                            <textarea class="form-control mobile-textarea" id="business-address" rows="2"></textarea>
                                         </div>
-                                        <div class="col-md-6">
+                                        <div class="col-md-6 col-12">
                                             <label class="form-label">Business Logo</label>
-                                            <input type="file" class="form-control" id="business-logo" accept="image/*">
-                                            <div class="form-text">Recommended: 200x200px PNG or JPG</div>
+                                            <input type="file" class="form-control mobile-file-input" id="business-logo" accept="image/*">
                                         </div>
-                                        <div class="col-md-6">
+                                        <div class="col-md-6 col-12">
                                             <label class="form-label">Payment QR Code</label>
-                                            <input type="file" class="form-control" id="qr-code" accept="image/*">
-                                            <div class="form-text">Upload QR code for UPI payments</div>
+                                            <input type="file" class="form-control mobile-file-input" id="qr-code" accept="image/*">
                                         </div>
-                                        <div class="col-md-6">
+                                        <div class="col-md-6 col-12">
                                             <div id="logo-preview" class="mt-2"></div>
                                         </div>
-                                        <div class="col-md-6">
+                                        <div class="col-md-6 col-12">
                                             <div id="qr-code-preview" class="mt-2"></div>
                                         </div>
                                     </div>
                                     
                                     <div class="d-grid gap-2 mt-4">
-                                        <button type="submit" class="btn btn-success">
+                                        <button type="submit" class="btn btn-success mobile-btn">
                                             <i class="fas fa-save me-1"></i> Save Profile
                                         </button>
-                                        <button type="button" class="btn btn-outline-danger" id="logout-btn">
+                                        <button type="button" class="btn btn-outline-danger mobile-btn" id="logout-btn">
                                             <i class="fas fa-sign-out-alt me-1"></i> Sign Out
                                         </button>
                                     </div>
@@ -1563,7 +840,7 @@
                     </div>
                     
                     <div class="col-lg-4">
-                        <div class="card">
+                        <div class="card mobile-card">
                             <div class="card-header">
                                 <h5 class="card-title mb-0">
                                     <i class="fas fa-chart-line me-2"></i>Business Statistics
@@ -1602,13 +879,107 @@
                                         <hr>
                                         <h6>Payment QR Code</h6>
                                         <div class="text-center">
-                                            <img id="profile-qr-code" src="" alt="QR Code" class="img-thumbnail mb-2" style="max-width: 200px; cursor: pointer;">
-                                            <p class="small text-muted">Click to view larger</p>
+                                            <img id="profile-qr-code" src="" alt="QR Code" class="img-thumbnail mb-2 mobile-qr-code" style="max-width: 200px;">
+                                            <p class="small text-muted">Tap to view larger</p>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Setup Modal -->
+        <div class="modal fade" id="profileSetupModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Setup Your Stall</h5>
+                    </div>
+                    <div class="modal-body">
+                        <p>Welcome! Please setup your stall profile to get started.</p>
+                        
+                        <form id="initial-profile-form">
+                            <div class="mb-3">
+                                <label class="form-label">Stall Name *</label>
+                                <input type="text" class="form-control" id="initial-business-name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Business Type</label>
+                                <select class="form-select" id="initial-business-type">
+                                    <option value="restaurant">Restaurant</option>
+                                    <option value="cafe">Cafe</option>
+                                    <option value="food-truck">Food Truck</option>
+                                    <option value="catering">Catering Service</option>
+                                    <option value="event">Event Stall</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Contact Phone</label>
+                                <input type="tel" class="form-control" id="initial-business-phone">
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" id="save-initial-profile-btn">
+                            Save & Continue
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Details Modal - ENHANCED FOR MOBILE -->
+        <div class="modal fade" id="orderDetailsModal" tabindex="-1">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Order Details - #<span id="modal-order-no"></span></h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                
+                    <div class="modal-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6 col-12 mb-2">
+                                <p><strong>Customer:</strong> <span id="modal-customer"></span></p>
+                                <p><strong>Phone:</strong> <span id="modal-phone"></span></p>
+                            </div>
+                            <div class="col-md-6 col-12">
+                                <p><strong>Order Time:</strong> <span id="modal-order-time"></span></p>
+                                <p><strong>Order Type:</strong> <span id="modal-order-type"></span></p>
+                            </div>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th>Qty</th>
+                                        <th>Price</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="modal-items-body">
+                                    <!-- Items will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <table class="table table-sm">
+                                <tbody id="modal-total">
+                                    <!-- Total will be calculated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary mobile-btn" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-success mobile-btn" id="complete-order-btn" data-order-id="">Complete Order</button>
                     </div>
                 </div>
             </div>
@@ -1623,54 +994,31 @@
     
     <!-- Custom JS -->
     <script src="script.js"></script>
+    
     <script>
-        // Mobile navigation setup
-        document.addEventListener('DOMContentLoaded', function() {
-            // Mobile bottom nav event listeners
-            document.querySelectorAll('.mobile-nav-item').forEach(item => {
-                item.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const tabId = this.getAttribute('data-tab');
-                    
-                    // Update active state
-                    document.querySelectorAll('.mobile-nav-item').forEach(navItem => {
-                        navItem.classList.remove('active');
-                    });
-                    this.classList.add('active');
-                    
-                    // Switch tab
-                    if (window.restaurantSystem) {
-                        window.restaurantSystem.switchTab(tabId);
-                    }
-                });
+    // Clean up modal backdrops
+    document.addEventListener('DOMContentLoaded', function() {
+        // Fix QR Code modal close
+        const qrModal = document.getElementById('qrCodeModal');
+        if (qrModal) {
+            qrModal.addEventListener('hidden.bs.modal', function() {
+                document.body.style.overflow = 'auto';
+                document.body.style.paddingRight = '0';
             });
-            
-            // Mobile logout button
-            document.getElementById('mobile-logout-btn')?.addEventListener('click', function(e) {
-                e.preventDefault();
-                if (window.restaurantSystem) {
-                    window.restaurantSystem.signOut();
-                }
+        }
+        
+        // Fix other modals
+        const modals = document.querySelectorAll('.modal');
+        modals.forEach(modal => {
+            modal.addEventListener('hidden.bs.modal', function() {
+                const backdrops = document.querySelectorAll('.modal-backdrop');
+                backdrops.forEach(backdrop => backdrop.remove());
+                document.body.classList.remove('modal-open');
+                document.body.style.paddingRight = '';
+                document.body.style.overflow = 'auto';
             });
-            
-            // QR Code Modal fix - prevent scroll lock
-            const qrModal = document.getElementById('qrCodeModal');
-            if (qrModal) {
-                qrModal.addEventListener('hidden.bs.modal', function() {
-                    // Remove modal backdrop
-                    const backdrops = document.querySelectorAll('.modal-backdrop');
-                    backdrops.forEach(backdrop => backdrop.remove());
-                    
-                    // Remove modal-open class
-                    document.body.classList.remove('modal-open');
-                    document.body.style.paddingRight = '';
-                    
-                    // Remove inline styles
-                    document.body.style.overflow = '';
-                    document.body.style.paddingRight = '';
-                });
-            }
         });
+    });
     </script>
 </body>
 </html>

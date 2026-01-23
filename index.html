@@ -1005,5 +1005,31 @@
     
     <!-- Custom JS -->
     <script src="script.js"></script>
+    <script>
+// Fix for Bootstrap modal cleanup
+document.addEventListener('DOMContentLoaded', function() {
+    // Clean up modal backdrops on page load
+    const cleanUpModals = () => {
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        backdrops.forEach(backdrop => backdrop.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.paddingRight = '';
+    };
+    
+    // Run cleanup on page load
+    cleanUpModals();
+    
+    // Also run on window focus (helps with login redirects)
+    window.addEventListener('focus', cleanUpModals);
+    
+    // Fix for QR code modal
+    const qrModal = document.getElementById('qrCodeModal');
+    if (qrModal) {
+        qrModal.addEventListener('hidden.bs.modal', function() {
+            setTimeout(cleanUpModals, 100);
+        });
+    }
+});
+</script>
 </body>
 </html>

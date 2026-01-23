@@ -100,6 +100,7 @@
     <div class="container-fluid main-content">
         <!-- Take Order Tab -->
         <div id="take-order" class="tab-content active">
+            <!-- ... (same content as before) ... -->
             <div class="row g-3">
                 <!-- Left Column -->
                 <div class="col-lg-8">
@@ -346,14 +347,11 @@
                             <h5 class="card-title mb-0">
                                 <i class="fas fa-check-circle me-2"></i>Completed Orders
                             </h5>
-                            <div class="d-flex gap-2">
-                                <select class="form-select form-select-sm" id="date-filter" style="width: 150px;">
-                                    <option value="today">Today</option>
-                                    <option value="yesterday">Yesterday</option>
-                                    <option value="week">This Week</option>
-                                    <option value="month">This Month</option>
-                                    <option value="all">All Time</option>
-                                </select>
+                            <div class="d-flex gap-2 align-items-center">
+                                <input type="date" class="form-control form-control-sm" id="date-from" style="width: 150px;">
+                                <span>to</span>
+                                <input type="date" class="form-control form-control-sm" id="date-to" style="width: 150px;">
+                                <button class="btn btn-sm btn-primary" id="apply-date-filter">Apply</button>
                             </div>
                         </div>
                         <div class="card-body">
@@ -591,13 +589,11 @@
                             <h5 class="card-title mb-0">
                                 <i class="fas fa-chart-line me-2"></i>Sales Analytics
                             </h5>
-                            <div class="d-flex gap-2">
-                                <select class="form-select form-select-sm" id="analytics-period" style="width: 150px;">
-                                    <option value="all">All Time</option>
-                                    <option value="today">Today</option>
-                                    <option value="week">This Week</option>
-                                    <option value="month">This Month</option>
-                                </select>
+                            <div class="d-flex gap-2 align-items-center">
+                                <input type="date" class="form-control form-control-sm" id="analytics-date-from" style="width: 150px;">
+                                <span>to</span>
+                                <input type="date" class="form-control form-control-sm" id="analytics-date-to" style="width: 150px;">
+                                <button class="btn btn-sm btn-primary" id="apply-analytics-filter">Apply</button>
                             </div>
                         </div>
                         <div class="card-body">
@@ -944,6 +940,14 @@
                             </thead>
                             <tbody id="modal-items-body">
                                 <!-- Items will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <table class="table table-sm">
+                            <tbody id="modal-total">
+                                <!-- Total will be calculated here -->
                             </tbody>
                         </table>
                     </div>

@@ -761,7 +761,7 @@ class RestaurantOrderSystem {
                          data-item-id="${item.id}">
                         <div>
                             <div class="menu-item-name">${item.name}</div>
-                            <div class="menu-item-price">₹${item.price}${item.tax > 0 ? ` (+${item.tax}% tax)` : ''}</div>
+                            <div class="menu-item-price">Rs ${item.price}${item.tax > 0 ? ` (+${item.tax}% tax)` : ''}</div>
                         </div>
                         <div class="menu-item-quantity">
                             <button class="quantity-btn minus-btn" data-item-id="${item.id}">
@@ -924,9 +924,9 @@ class RestaurantOrderSystem {
                                     onclick="restaurantSystem.adjustQuantity('${item.id}', 1)">+</button>
                         </div>
                     </td>
-                    <td>₹${item.price}</td>
-                    <td>₹${item.subtotal.toFixed(2)}</td>
-                    <td>₹${item.taxAmount.toFixed(2)}</td>
+                    <td>Rs ${item.price}</td>
+                    <td>Rs ${item.subtotal.toFixed(2)}</td>
+                    <td>Rs ${item.taxAmount.toFixed(2)}</td>
                     <td class="text-end">
                         <button class="btn btn-sm btn-danger" 
                                 onclick="restaurantSystem.setQuantity('${item.id}', 0)">
@@ -946,18 +946,18 @@ class RestaurantOrderSystem {
         tfoot.innerHTML = `
             <tr class="table-light">
                 <td colspan="3" class="text-end"><strong>Subtotal:</strong></td>
-                <td><strong>₹${subtotal.toFixed(2)}</strong></td>
+                <td><strong>Rs ${subtotal.toFixed(2)}</strong></td>
                 <td colspan="2"></td>
             </tr>
             <tr class="table-light">
                 <td colspan="3" class="text-end"><strong>Total Tax:</strong></td>
                 <td></td>
-                <td><strong>₹${totalTax.toFixed(2)}</strong></td>
+                <td><strong>Rs ${totalTax.toFixed(2)}</strong></td>
                 <td></td>
             </tr>
             <tr class="table-success">
                 <td colspan="3" class="text-end"><strong>Grand Total:</strong></td>
-                <td colspan="2"><strong>₹${total.toFixed(2)}</strong></td>
+                <td colspan="2"><strong>Rs ${total.toFixed(2)}</strong></td>
                 <td></td>
             </tr>
         `;
@@ -1010,7 +1010,7 @@ class RestaurantOrderSystem {
             html += `
                 <div class="summary-item">
                     <span>${item.name} x${item.quantity}</span>
-                    <span>₹${item.total.toFixed(2)}</span>
+                    <span>Rs ${item.total.toFixed(2)}</span>
                 </div>
             `;
         });
@@ -1024,30 +1024,30 @@ class RestaurantOrderSystem {
                 summaryTotal.innerHTML = `
                     <div class="d-flex justify-content-between mb-1">
                         <span>Subtotal:</span>
-                        <span>₹0.00</span>
+                        <span>Rs 0.00</span>
                     </div>
                     <div class="d-flex justify-content-between mb-1">
                         <span>Tax:</span>
-                        <span>₹0.00</span>
+                        <span>Rs 0.00</span>
                     </div>
                     <div class="d-flex justify-content-between mt-2 total-row">
                         <strong>Total:</strong>
-                        <strong>₹0.00</strong>
+                        <strong>Rs 0.00</strong>
                     </div>
                 `;
             } else {
                 summaryTotal.innerHTML = `
                     <div class="d-flex justify-content-between mb-1">
                         <span>Subtotal:</span>
-                        <span>₹${subtotal.toFixed(2)}</span>
+                        <span>Rs ${subtotal.toFixed(2)}</span>
                     </div>
                     <div class="d-flex justify-content-between mb-1">
                         <span>Tax:</span>
-                        <span>₹${totalTax.toFixed(2)}</span>
+                        <span>Rs ${totalTax.toFixed(2)}</span>
                     </div>
                     <div class="d-flex justify-content-between mt-2 total-row">
                         <strong>Total:</strong>
-                        <strong>₹${total.toFixed(2)}</strong>
+                        <strong>Rs ${total.toFixed(2)}</strong>
                     </div>
                 `;
             }
@@ -1075,7 +1075,7 @@ class RestaurantOrderSystem {
         const todayItemsEl = document.getElementById('today-items');
         
         if (todayOrdersEl) todayOrdersEl.textContent = todayOrders.length;
-        if (todayRevenueEl) todayRevenueEl.textContent = `₹${todayRevenue.toFixed(2)}`;
+        if (todayRevenueEl) todayRevenueEl.textContent = `Rs ${todayRevenue.toFixed(2)}`;
         if (todayItemsEl) todayItemsEl.textContent = todayItems;
     }
     
@@ -1276,7 +1276,7 @@ class RestaurantOrderSystem {
                     <td>${orderTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
                     <td>${order.customerName || 'Walk-in'}</td>
                     <td>${itemsText}${moreItems}</td>
-                    <td>₹${order.total ? order.total.toFixed(2) : order.total}</td>
+                    <td>Rs ${order.total ? order.total.toFixed(2) : order.total}</td>
                     <td>
                         <span class="status-badge status-${order.status}">
                             ${order.status}
@@ -1353,8 +1353,8 @@ class RestaurantOrderSystem {
                 <tr>
                     <td>${item.name}${item.tax > 0 ? `<br><small class="text-muted">${item.tax}% tax</small>` : ''}</td>
                     <td>${item.quantity}</td>
-                    <td>₹${item.price}</td>
-                    <td>₹${item.total ? item.total.toFixed(2) : (item.price * item.quantity).toFixed(2)}</td>
+                    <td>Rs ${item.price}</td>
+                    <td>Rs ${item.total ? item.total.toFixed(2) : (item.price * item.quantity).toFixed(2)}</td>
                 </tr>
             `;
         });
@@ -1367,30 +1367,30 @@ class RestaurantOrderSystem {
             totalHtml = `
                 <tr class="table-light">
                     <td colspan="3" class="text-end"><strong>Subtotal:</strong></td>
-                    <td><strong>₹${order.subtotal.toFixed(2)}</strong></td>
+                    <td><strong>Rs ${order.subtotal.toFixed(2)}</strong></td>
                 </tr>
                 <tr class="table-light">
                     <td colspan="3" class="text-end"><strong>Tax:</strong></td>
-                    <td><strong>₹${order.totalTax.toFixed(2)}</strong></td>
+                    <td><strong>Rs ${order.totalTax.toFixed(2)}</strong></td>
                 </tr>
                 <tr class="table-success">
                     <td colspan="3" class="text-end"><strong>Total:</strong></td>
-                    <td><strong>₹${order.total.toFixed(2)}</strong></td>
+                    <td><strong>Rs ${order.total.toFixed(2)}</strong></td>
                 </tr>
             `;
         } else {
             totalHtml = `
                 <tr class="table-light">
                     <td colspan="3" class="text-end"><strong>Subtotal:</strong></td>
-                    <td><strong>₹${subtotal.toFixed(2)}</strong></td>
+                    <td><strong>Rs ${subtotal.toFixed(2)}</strong></td>
                 </tr>
                 <tr class="table-light">
                     <td colspan="3" class="text-end"><strong>Tax:</strong></td>
-                    <td><strong>₹${totalTax.toFixed(2)}</strong></td>
+                    <td><strong>Rs ${totalTax.toFixed(2)}</strong></td>
                 </tr>
                 <tr class="table-success">
                     <td colspan="3" class="text-end"><strong>Total:</strong></td>
-                    <td><strong>₹${total.toFixed(2)}</strong></td>
+                    <td><strong>Rs ${total.toFixed(2)}</strong></td>
                 </tr>
             `;
         }
@@ -1601,8 +1601,8 @@ class RestaurantOrderSystem {
                     <td>${orderTime.toLocaleDateString()}</td>
                     <td>${order.customerName || 'Walk-in'}</td>
                     <td>${itemsCount} items</td>
-                    <td>₹${order.total ? order.total.toFixed(2) : order.total}</td>
-                    <td class="${profitClass}">₹${profit.toFixed(2)}</td>
+                    <td>Rs ${order.total ? order.total.toFixed(2) : order.total}</td>
+                    <td class="${profitClass}">Rs ${profit.toFixed(2)}</td>
                     <td>${completedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
                 </tr>
             `;
@@ -1628,9 +1628,9 @@ class RestaurantOrderSystem {
         const totalProfitEl = document.getElementById('total-profit');
         const profitMarginEl = document.getElementById('profit-margin');
         
-        if (totalRevenueEl) totalRevenueEl.textContent = `₹${totalRevenue.toFixed(2)}`;
+        if (totalRevenueEl) totalRevenueEl.textContent = `Rs ${totalRevenue.toFixed(2)}`;
         if (totalOrdersEl) totalOrdersEl.textContent = totalOrders;
-        if (totalProfitEl) totalProfitEl.textContent = `₹${totalProfit.toFixed(2)}`;
+        if (totalProfitEl) totalProfitEl.textContent = `Rs ${totalProfit.toFixed(2)}`;
         if (profitMarginEl) profitMarginEl.textContent = `${profitMargin}%`;
         
         // Calculate item-wise sales
@@ -1668,8 +1668,8 @@ class RestaurantOrderSystem {
                 <tr>
                     <td>${itemName}</td>
                     <td>${data.quantity}</td>
-                    <td>₹${data.revenue.toFixed(2)}</td>
-                    <td class="${profitClass}">₹${data.profit.toFixed(2)}</td>
+                    <td>Rs ${data.revenue.toFixed(2)}</td>
+                    <td class="${profitClass}">Rs ${data.profit.toFixed(2)}</td>
                     <td>${margin}%</td>
                 </tr>
             `;
@@ -1716,9 +1716,9 @@ class RestaurantOrderSystem {
             
             doc.setFontSize(11);
             doc.text(`Total Orders: ${totalOrders}`, 20, 55);
-            doc.text(`Total Revenue: ₹${totalRevenue.toFixed(2)}`, 20, 62);
-            doc.text(`Total Cost: ₹${totalCost.toFixed(2)}`, 20, 69);
-            doc.text(`Total Profit: ₹${totalProfit.toFixed(2)}`, 20, 76);
+            doc.text(`Total Revenue: Rs ${totalRevenue.toFixed(2)}`, 20, 62);
+            doc.text(`Total Cost: Rs ${totalCost.toFixed(2)}`, 20, 69);
+            doc.text(`Total Profit: Rs ${totalProfit.toFixed(2)}`, 20, 76);
             doc.text(`Profit Margin: ${profitMargin}%`, 20, 83);
             
             // Calculate item-wise sales
@@ -1750,9 +1750,9 @@ class RestaurantOrderSystem {
                     index + 1,
                     itemName,
                     data.quantity,
-                    `₹${data.revenue.toFixed(2)}`,
-                    `₹${data.cost.toFixed(2)}`,
-                    `₹${data.profit.toFixed(2)}`,
+                    `Rs ${data.revenue.toFixed(2)}`,
+                    `Rs ${data.cost.toFixed(2)}`,
+                    `Rs ${data.profit.toFixed(2)}`,
                     `${margin}%`
                 ];
             });
@@ -1910,10 +1910,10 @@ class RestaurantOrderSystem {
                                 ${item.outOfStock ? '<span class="badge bg-danger ms-2">Out of Stock</span>' : ''}
                             </div>
                         </td>
-                        <td>₹${item.cost}</td>
-                        <td>₹${item.price}</td>
+                        <td>Rs ${item.cost}</td>
+                        <td>Rs ${item.price}</td>
                         <td>${item.tax || 0}%</td>
-                        <td class="${profitClass}">₹${profit.toFixed(2)}</td>
+                        <td class="${profitClass}">Rs ${profit.toFixed(2)}</td>
                         <td>
                             <div class="form-check">
                                 <input class="form-check-input out-of-stock-checkbox" 
@@ -2626,11 +2626,11 @@ class RestaurantOrderSystem {
         if (totalBusinessOrders) totalBusinessOrders.textContent = this.completedOrders.length;
         if (totalBusinessRevenue) {
             const totalRevenue = this.completedOrders.reduce((sum, order) => sum + order.total, 0);
-            totalBusinessRevenue.textContent = `₹${totalRevenue.toFixed(2)}`;
+            totalBusinessRevenue.textContent = `Rs ${totalRevenue.toFixed(2)}`;
         }
         if (totalBusinessProfit) {
             const totalProfit = this.completedOrders.reduce((sum, order) => sum + (order.totalProfit || 0), 0);
-            totalBusinessProfit.textContent = `₹${totalProfit.toFixed(2)}`;
+            totalBusinessProfit.textContent = `Rs ${totalProfit.toFixed(2)}`;
         }
     }
     
@@ -2666,8 +2666,8 @@ class RestaurantOrderSystem {
         const analyticsOrdersEl = document.getElementById('analytics-orders');
         const analyticsMarginEl = document.getElementById('analytics-margin');
         
-        if (analyticsRevenueEl) analyticsRevenueEl.textContent = `₹${analyticsRevenue.toFixed(2)}`;
-        if (analyticsProfitEl) analyticsProfitEl.textContent = `₹${analyticsProfit.toFixed(2)}`;
+        if (analyticsRevenueEl) analyticsRevenueEl.textContent = `Rs ${analyticsRevenue.toFixed(2)}`;
+        if (analyticsProfitEl) analyticsProfitEl.textContent = `Rs ${analyticsProfit.toFixed(2)}`;
         if (analyticsOrdersEl) analyticsOrdersEl.textContent = analyticsOrders;
         if (analyticsMarginEl) analyticsMarginEl.textContent = `${analyticsMargin}%`;
         
@@ -2716,8 +2716,8 @@ class RestaurantOrderSystem {
             html += `
                 <tr>
                     <td>${category}</td>
-                    <td>₹${data.revenue.toFixed(2)}</td>
-                    <td>₹${data.profit.toFixed(2)}</td>
+                    <td>Rs ${data.revenue.toFixed(2)}</td>
+                    <td>Rs ${data.profit.toFixed(2)}</td>
                     <td>${margin}%</td>
                 </tr>
             `;
@@ -2764,8 +2764,8 @@ class RestaurantOrderSystem {
                 <tr>
                     <td>${itemName}</td>
                     <td>${data.quantity}</td>
-                    <td>₹${data.revenue.toFixed(2)}</td>
-                    <td>₹${data.profit.toFixed(2)}</td>
+                    <td>Rs ${data.revenue.toFixed(2)}</td>
+                    <td>Rs ${data.profit.toFixed(2)}</td>
                 </tr>
             `;
         });
@@ -2799,7 +2799,7 @@ class RestaurantOrderSystem {
                 data: {
                     labels: ['Revenue', 'Profit'],
                     datasets: [{
-                        label: 'Amount (₹)',
+                        label: 'Amount (Rs )',
                         data: [revenue, profit],
                         backgroundColor: ['#ff6b35', '#28a745']
                     }]
@@ -2812,7 +2812,7 @@ class RestaurantOrderSystem {
                             beginAtZero: true,
                             ticks: {
                                 callback: function(value) {
-                                    return '₹' + value;
+                                    return 'Rs ' + value;
                                 }
                             }
                         }
@@ -2824,7 +2824,7 @@ class RestaurantOrderSystem {
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
-                                    return context.dataset.label + ': ₹' + context.raw.toFixed(2);
+                                    return context.dataset.label + ': Rs ' + context.raw.toFixed(2);
                                 }
                             }
                         }

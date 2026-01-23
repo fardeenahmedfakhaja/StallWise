@@ -1,4 +1,4 @@
-// Restaurant Order Management System with Firebase - COMPLETE WITH LOADING
+// Restaurant Order Management System with Firebase - COMPLETE WITH ALL FIXES
 class RestaurantOrderSystem {
     constructor() {
         // Firebase services
@@ -175,6 +175,7 @@ class RestaurantOrderSystem {
                 this.renderOngoingOrders();
                 break;
             case 'completed-orders':
+                this.setupDateFilters();
                 this.renderCompletedOrders();
                 break;
             case 'menu-management':
@@ -182,6 +183,7 @@ class RestaurantOrderSystem {
                 this.loadCategoriesDropdown();
                 break;
             case 'analytics':
+                this.setupDateFilters();
                 this.updateAnalytics();
                 break;
             case 'profile':
@@ -511,6 +513,8 @@ class RestaurantOrderSystem {
         }, 'Saving profile...');
     }
     
+    // ================= EVENT LISTENERS =================
+    
     // Initialize event listeners
     initEventListeners() {
         // Customer info
@@ -544,8 +548,6 @@ class RestaurantOrderSystem {
         const placeOrderBtn = document.getElementById('place-order-btn');
         placeOrderBtn?.addEventListener('click', () => this.placeOrder(placeOrderBtn));
         
-        // Quick action buttons REMOVED - Only dynamic favorite categories
-        
         // Refresh orders with loading
         const refreshOrdersBtn = document.getElementById('refresh-orders-btn');
         refreshOrdersBtn?.addEventListener('click', () => this.loadBusinessData());
@@ -561,11 +563,15 @@ class RestaurantOrderSystem {
         const clearCompletedBtn = document.getElementById('clear-completed-btn');
         clearCompletedBtn?.addEventListener('click', () => this.clearCompletedOrders(clearCompletedBtn));
         
-        // Date filter
-        document.getElementById('date-filter')?.addEventListener('change', () => this.renderCompletedOrders());
+        // Date filter for completed orders
+        document.getElementById('apply-date-filter')?.addEventListener('click', () => {
+            this.renderCompletedOrders();
+        });
         
-        // Analytics period filter
-        document.getElementById('analytics-period')?.addEventListener('change', () => this.updateAnalytics());
+        // Date filter for analytics
+        document.getElementById('apply-analytics-filter')?.addEventListener('click', () => {
+            this.updateAnalytics();
+        });
         
         // Menu management - with loading states
         const menuItemForm = document.getElementById('menu-item-form');
@@ -619,6 +625,8 @@ class RestaurantOrderSystem {
             this.handleBusinessProfileSubmit(saveProfileBtn);
         });
     }
+    
+    // ================= MENU MANAGEMENT =================
     
     // Update quick actions based on favorite categories
     updateQuickActions() {
@@ -869,10 +877,17 @@ class RestaurantOrderSystem {
         }
     }
     
-    // Update selected items table with tax information
+    // Update selected items table with tax information - FIXED
     updateSelectedItemsTable() {
         const tbody = document.getElementById('selected-items-body');
         if (!tbody) return;
+        
+        // Remove existing tfoot
+        const table = document.getElementById('selected-items-table');
+        let tfoot = table.querySelector('tfoot');
+        if (tfoot) {
+            tfoot.remove();
+        }
         
         if (this.currentOrder.items.length === 0) {
             tbody.innerHTML = `
@@ -882,7 +897,6 @@ class RestaurantOrderSystem {
                     </td>
                 </tr>
             `;
-            
             return;
         }
         
@@ -925,13 +939,9 @@ class RestaurantOrderSystem {
         
         tbody.innerHTML = html;
         
-        // Update totals in table footer
-        const table = document.getElementById('selected-items-table');
-        let tfoot = table.querySelector('tfoot');
-        if (!tfoot) {
-            tfoot = document.createElement('tfoot');
-            table.appendChild(tfoot);
-        }
+        // Create new footer with totals
+        tfoot = document.createElement('tfoot');
+        table.appendChild(tfoot);
         
         tfoot.innerHTML = `
             <tr class="table-light">
@@ -1007,23 +1017,40 @@ class RestaurantOrderSystem {
         
         container.innerHTML = html || '<div class="text-muted small">No items selected</div>';
         
-        // Update totals in summary - FIX: Always show totals even when no items
+        // Update totals in summary
         const summaryTotal = document.getElementById('summary-total');
         if (summaryTotal) {
-            summaryTotal.innerHTML = `
-                <div class="d-flex justify-content-between mb-1">
-                    <span>Subtotal:</span>
-                    <span>₹${subtotal.toFixed(2)}</span>
-                </div>
-                <div class="d-flex justify-content-between mb-1">
-                    <span>Tax:</span>
-                    <span>₹${totalTax.toFixed(2)}</span>
-                </div>
-                <div class="d-flex justify-content-between mt-2 total-row">
-                    <strong>Total:</strong>
-                    <strong>₹${total.toFixed(2)}</strong>
-                </div>
-            `;
+            if (this.currentOrder.items.length === 0) {
+                summaryTotal.innerHTML = `
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Subtotal:</span>
+                        <span>₹0.00</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Tax:</span>
+                        <span>₹0.00</span>
+                    </div>
+                    <div class="d-flex justify-content-between mt-2 total-row">
+                        <strong>Total:</strong>
+                        <strong>₹0.00</strong>
+                    </div>
+                `;
+            } else {
+                summaryTotal.innerHTML = `
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Subtotal:</span>
+                        <span>₹${subtotal.toFixed(2)}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Tax:</span>
+                        <span>₹${totalTax.toFixed(2)}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mt-2 total-row">
+                        <strong>Total:</strong>
+                        <strong>₹${total.toFixed(2)}</strong>
+                    </div>
+                `;
+            }
         }
     }
     
@@ -1168,7 +1195,7 @@ class RestaurantOrderSystem {
         }, 'Placing order...', button);
     }
     
-    // Clear current order - FIXED: Now properly resets summary
+    // Clear current order - FIXED
     clearCurrentOrder() {
         this.currentOrder = {
             items: [],
@@ -1199,43 +1226,11 @@ class RestaurantOrderSystem {
             if (menuCard) menuCard.classList.remove('selected');
         });
         
-        // Update UI - FIX: Call both update methods
+        // Update UI
         this.updateSelectedItemsTable();
         this.updateSummary();
         
-        // Clear the summary totals explicitly
-        const summaryTotal = document.getElementById('summary-total');
-        if (summaryTotal) {
-            summaryTotal.innerHTML = `
-                <div class="d-flex justify-content-between mb-1">
-                    <span>Subtotal:</span>
-                    <span>₹0.00</span>
-                </div>
-                <div class="d-flex justify-content-between mb-1">
-                    <span>Tax:</span>
-                    <span>₹0.00</span>
-                </div>
-                <div class="d-flex justify-content-between mt-2 total-row">
-                    <strong>Total:</strong>
-                    <strong>₹0.00</strong>
-                </div>
-            `;
-        }
-        
-        // Clear summary items
-        const summaryItems = document.getElementById('summary-items');
-        if (summaryItems) {
-            summaryItems.innerHTML = '<div class="text-muted small">No items selected</div>';
-        }
-        
-        // Reset summary info
-        const summaryCustomer = document.getElementById('summary-customer');
-        const summaryType = document.getElementById('summary-type');
-        const summaryPayment = document.getElementById('summary-payment');
-        
-        if (summaryCustomer) summaryCustomer.textContent = 'Not specified';
-        if (summaryType) summaryType.textContent = 'Dine In';
-        if (summaryPayment) summaryPayment.textContent = 'Cash';
+        this.showNotification('Order cleared successfully', 'success');
     }
     
     // Show category
@@ -1246,7 +1241,9 @@ class RestaurantOrderSystem {
         }
     }
     
-    // Render ongoing orders
+    // ================= ONGOING ORDERS =================
+    
+    // Render ongoing orders - FIXED VIEW BUTTON
     renderOngoingOrders() {
         const tbody = document.getElementById('ongoing-orders-body');
         const emptyState = document.getElementById('no-ongoing-orders');
@@ -1288,7 +1285,7 @@ class RestaurantOrderSystem {
                     <td>
                         <div class="d-flex gap-2">
                             <button class="btn btn-sm btn-outline-primary view-order-btn" data-order-id="${order.id}" title="View Order">
-                                <i class="fas fa-eye"></i>
+                                <i class="fas fa-eye"></i> View
                             </button>
                             <button class="btn btn-sm btn-success complete-order-btn" data-order-id="${order.id}" title="Complete Order">
                                 <i class="fas fa-check me-1"></i> Complete
@@ -1324,12 +1321,15 @@ class RestaurantOrderSystem {
         });
     }
     
-    // View order details
+    // View order details - FIXED
     viewOrderDetails(orderId) {
         const order = this.orders.find(o => o.id == orderId) || 
                      this.completedOrders.find(o => o.id == orderId);
         
-        if (!order) return;
+        if (!order) {
+            this.showNotification('Order not found', 'error');
+            return;
+        }
         
         // Populate modal
         document.getElementById('modal-order-no').textContent = order.orderNumber || order.id;
@@ -1380,6 +1380,14 @@ class RestaurantOrderSystem {
             `;
         } else {
             totalHtml = `
+                <tr class="table-light">
+                    <td colspan="3" class="text-end"><strong>Subtotal:</strong></td>
+                    <td><strong>₹${subtotal.toFixed(2)}</strong></td>
+                </tr>
+                <tr class="table-light">
+                    <td colspan="3" class="text-end"><strong>Tax:</strong></td>
+                    <td><strong>₹${totalTax.toFixed(2)}</strong></td>
+                </tr>
                 <tr class="table-success">
                     <td colspan="3" class="text-end"><strong>Total:</strong></td>
                     <td><strong>₹${total.toFixed(2)}</strong></td>
@@ -1505,45 +1513,69 @@ class RestaurantOrderSystem {
         window.print();
     }
     
-    // Render completed orders
+    // ================= COMPLETED ORDERS =================
+    
+    // Setup date filters
+    setupDateFilters() {
+        const today = new Date().toISOString().split('T')[0];
+        const twoYearsAgo = new Date();
+        twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+        const twoYearsAgoStr = twoYearsAgo.toISOString().split('T')[0];
+        
+        // Set default values for completed orders filter
+        const dateFrom = document.getElementById('date-from');
+        const dateTo = document.getElementById('date-to');
+        
+        if (dateFrom) {
+            dateFrom.value = today;
+            dateFrom.max = today;
+            dateFrom.min = twoYearsAgoStr;
+        }
+        
+        if (dateTo) {
+            dateTo.value = today;
+            dateTo.max = today;
+            dateTo.min = twoYearsAgoStr;
+        }
+        
+        // Set default values for analytics filter
+        const analyticsDateFrom = document.getElementById('analytics-date-from');
+        const analyticsDateTo = document.getElementById('analytics-date-to');
+        
+        if (analyticsDateFrom) {
+            analyticsDateFrom.value = today;
+            analyticsDateFrom.max = today;
+            analyticsDateFrom.min = twoYearsAgoStr;
+        }
+        
+        if (analyticsDateTo) {
+            analyticsDateTo.value = today;
+            analyticsDateTo.max = today;
+            analyticsDateTo.min = twoYearsAgoStr;
+        }
+    }
+    
+    // Render completed orders with date range filter
     renderCompletedOrders() {
         const tbody = document.getElementById('completed-orders-body');
         const emptyState = document.getElementById('no-completed-orders');
-        const dateFilter = document.getElementById('date-filter');
         
-        if (!tbody || !emptyState || !dateFilter) return;
+        if (!tbody || !emptyState) return;
         
-        // Filter orders
+        // Get date range values
+        const dateFrom = document.getElementById('date-from')?.value;
+        const dateTo = document.getElementById('date-to')?.value;
+        
+        // Filter orders by date range
         let filteredOrders = this.completedOrders;
-        const filterValue = dateFilter.value;
-        const now = new Date();
         
-        switch(filterValue) {
-            case 'today':
-                const today = now.toISOString().split('T')[0];
-                filteredOrders = this.completedOrders.filter(order => 
-                    order.completedTime && order.completedTime.startsWith(today)
-                );
-                break;
-            case 'yesterday':
-                const yesterday = new Date(now.setDate(now.getDate() - 1)).toISOString().split('T')[0];
-                filteredOrders = this.completedOrders.filter(order => 
-                    order.completedTime && order.completedTime.startsWith(yesterday)
-                );
-                break;
-            case 'week':
-                const weekAgo = new Date(now.setDate(now.getDate() - 7)).toISOString().split('T')[0];
-                filteredOrders = this.completedOrders.filter(order => 
-                    order.completedTime && order.completedTime >= weekAgo
-                );
-                break;
-            case 'month':
-                const monthAgo = new Date(now.setMonth(now.getMonth() - 1)).toISOString().split('T')[0];
-                filteredOrders = this.completedOrders.filter(order => 
-                    order.completedTime && order.completedTime >= monthAgo
-                );
-                break;
-            // 'all' uses all orders
+        if (dateFrom && dateTo) {
+            filteredOrders = this.completedOrders.filter(order => {
+                const orderDate = order.completedTime ? 
+                    order.completedTime.split('T')[0] : 
+                    order.orderTime.split('T')[0];
+                return orderDate >= dateFrom && orderDate <= dateTo;
+            });
         }
         
         if (filteredOrders.length === 0) {
@@ -1578,7 +1610,7 @@ class RestaurantOrderSystem {
         
         tbody.innerHTML = html;
         
-        // Update sales summary
+        // Update sales summary with filtered orders
         this.updateSalesSummary(filteredOrders);
     }
     
@@ -1941,7 +1973,7 @@ class RestaurantOrderSystem {
             });
         });
         
-        // Add event listeners for out of stock checkboxes - FIXED: Now updates menu immediately
+        // Add event listeners for out of stock checkboxes
         document.querySelectorAll('.out-of-stock-checkbox').forEach(checkbox => {
             checkbox.addEventListener('change', (e) => {
                 const itemId = e.target.getAttribute('data-item-id');
@@ -2014,7 +2046,7 @@ class RestaurantOrderSystem {
         }, 'Updating category...', button);
     }
     
-    // Update item stock status - FIXED: Now updates menu immediately
+    // Update item stock status
     async updateItemStockStatus(itemId, isOutOfStock, checkbox) {
         await this.withLoading(async () => {
             try {
@@ -2059,7 +2091,7 @@ class RestaurantOrderSystem {
                     }
                 }
                 
-                // FIX: Update menu items in order tab immediately without refreshing page
+                // Update menu items in order tab immediately
                 this.renderMenu();
                 
                 this.showNotification(
@@ -2279,7 +2311,7 @@ class RestaurantOrderSystem {
         }
     }
     
-    // Save menu item with loading (updated with tax and stock status)
+    // Save menu item with loading
     async saveMenuItem(button) {
         const category = document.getElementById('item-category').value;
         const name = document.getElementById('item-name').value.trim();
@@ -2602,12 +2634,30 @@ class RestaurantOrderSystem {
         }
     }
     
-    // Update analytics
+    // ================= ANALYTICS =================
+    
+    // Update analytics with date range filter
     updateAnalytics() {
+        // Get date range values
+        const dateFrom = document.getElementById('analytics-date-from')?.value;
+        const dateTo = document.getElementById('analytics-date-to')?.value;
+        
+        // Filter orders by date range
+        let filteredOrders = this.completedOrders;
+        
+        if (dateFrom && dateTo) {
+            filteredOrders = this.completedOrders.filter(order => {
+                const orderDate = order.completedTime ? 
+                    order.completedTime.split('T')[0] : 
+                    order.orderTime.split('T')[0];
+                return orderDate >= dateFrom && orderDate <= dateTo;
+            });
+        }
+        
         // Calculate analytics data
-        const analyticsRevenue = this.completedOrders.reduce((sum, order) => sum + order.total, 0);
-        const analyticsProfit = this.completedOrders.reduce((sum, order) => sum + (order.totalProfit || 0), 0);
-        const analyticsOrders = this.completedOrders.length;
+        const analyticsRevenue = filteredOrders.reduce((sum, order) => sum + order.total, 0);
+        const analyticsProfit = filteredOrders.reduce((sum, order) => sum + (order.totalProfit || 0), 0);
+        const analyticsOrders = filteredOrders.length;
         const analyticsMargin = analyticsRevenue > 0 ? ((analyticsProfit / analyticsRevenue) * 100).toFixed(1) : 0;
         
         // Update analytics display
@@ -2621,19 +2671,127 @@ class RestaurantOrderSystem {
         if (analyticsOrdersEl) analyticsOrdersEl.textContent = analyticsOrders;
         if (analyticsMarginEl) analyticsMarginEl.textContent = `${analyticsMargin}%`;
         
-        // Render charts (simplified version)
-        this.renderAnalyticsCharts();
+        // Update category performance
+        this.updateCategoryPerformance(filteredOrders);
+        
+        // Update best selling items
+        this.updateBestSellingItems(filteredOrders);
+        
+        // Render charts with filtered data
+        this.renderAnalyticsCharts(filteredOrders);
     }
     
-    // Render analytics charts (simplified)
-    renderAnalyticsCharts() {
-        // This is a simplified version - you can expand it based on your needs
+    // Update category performance
+    updateCategoryPerformance(orders) {
+        const categoryPerformance = {};
+        
+        orders.forEach(order => {
+            order.items.forEach(item => {
+                const category = item.category || 'Uncategorized';
+                if (!categoryPerformance[category]) {
+                    categoryPerformance[category] = {
+                        revenue: 0,
+                        profit: 0,
+                        items: 0
+                    };
+                }
+                
+                const itemCost = item.cost || 0;
+                const itemProfit = item.total - (itemCost * item.quantity);
+                
+                categoryPerformance[category].revenue += item.total;
+                categoryPerformance[category].profit += itemProfit;
+                categoryPerformance[category].items += item.quantity;
+            });
+        });
+        
+        // Sort by revenue
+        const sortedCategories = Object.entries(categoryPerformance)
+            .sort((a, b) => b[1].revenue - a[1].revenue)
+            .slice(0, 10);
+        
+        let html = '';
+        sortedCategories.forEach(([category, data]) => {
+            const margin = data.revenue > 0 ? ((data.profit / data.revenue) * 100).toFixed(1) : 0;
+            html += `
+                <tr>
+                    <td>${category}</td>
+                    <td>₹${data.revenue.toFixed(2)}</td>
+                    <td>₹${data.profit.toFixed(2)}</td>
+                    <td>${margin}%</td>
+                </tr>
+            `;
+        });
+        
+        const categoryPerformanceBody = document.getElementById('category-performance-body');
+        if (categoryPerformanceBody) {
+            categoryPerformanceBody.innerHTML = html || 
+                '<tr><td colspan="4" class="text-center text-muted">No data</td></tr>';
+        }
+    }
+    
+    // Update best selling items
+    updateBestSellingItems(orders) {
+        const itemSales = {};
+        
+        orders.forEach(order => {
+            order.items.forEach(item => {
+                if (!itemSales[item.name]) {
+                    itemSales[item.name] = {
+                        quantity: 0,
+                        revenue: 0,
+                        profit: 0
+                    };
+                }
+                
+                const itemCost = item.cost || 0;
+                const itemProfit = item.total - (itemCost * item.quantity);
+                
+                itemSales[item.name].quantity += item.quantity;
+                itemSales[item.name].revenue += item.total;
+                itemSales[item.name].profit += itemProfit;
+            });
+        });
+        
+        // Sort by quantity sold
+        const bestItems = Object.entries(itemSales)
+            .sort((a, b) => b[1].quantity - a[1].quantity)
+            .slice(0, 10);
+        
+        let html = '';
+        bestItems.forEach(([itemName, data]) => {
+            html += `
+                <tr>
+                    <td>${itemName}</td>
+                    <td>${data.quantity}</td>
+                    <td>₹${data.revenue.toFixed(2)}</td>
+                    <td>₹${data.profit.toFixed(2)}</td>
+                </tr>
+            `;
+        });
+        
+        const bestItemsBody = document.getElementById('best-items-body');
+        if (bestItemsBody) {
+            bestItemsBody.innerHTML = html || 
+                '<tr><td colspan="4" class="text-center text-muted">No data</td></tr>';
+        }
+    }
+    
+    // Render analytics charts
+    renderAnalyticsCharts(filteredOrders) {
+        // This is a simplified chart implementation
+        // You can expand this with actual chart data from filteredOrders
+        
         const ctx = document.getElementById('revenueProfitChart');
-        if (ctx && this.completedOrders.length > 0) {
+        if (ctx && filteredOrders.length > 0) {
             // Destroy existing chart if it exists
             if (this.revenueProfitChart) {
                 this.revenueProfitChart.destroy();
             }
+            
+            // Calculate revenue and profit
+            const revenue = filteredOrders.reduce((sum, order) => sum + order.total, 0);
+            const profit = filteredOrders.reduce((sum, order) => sum + (order.totalProfit || 0), 0);
             
             // Create simple bar chart
             this.revenueProfitChart = new Chart(ctx, {
@@ -2642,10 +2800,7 @@ class RestaurantOrderSystem {
                     labels: ['Revenue', 'Profit'],
                     datasets: [{
                         label: 'Amount (₹)',
-                        data: [
-                            this.completedOrders.reduce((sum, order) => sum + order.total, 0),
-                            this.completedOrders.reduce((sum, order) => sum + (order.totalProfit || 0), 0)
-                        ],
+                        data: [revenue, profit],
                         backgroundColor: ['#ff6b35', '#28a745']
                     }]
                 },
@@ -2654,12 +2809,32 @@ class RestaurantOrderSystem {
                     maintainAspectRatio: false,
                     scales: {
                         y: {
-                            beginAtZero: true
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '₹' + value;
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ₹' + context.raw.toFixed(2);
+                                }
+                            }
                         }
                     }
                 }
             });
         }
+        
+        // Note: Other charts can be implemented similarly
+        // For now, we'll just show a basic chart
     }
     
     // ================= INITIALIZE =================

@@ -1401,3 +1401,102 @@ input[type="date"]:focus {
 #selected-items-table tfoot tr:last-child {
     background-color: #d4edda !important;
 }
+
+/* FIX: Modal backdrop cleanup */
+.modal-backdrop {
+    z-index: 1040 !important;
+}
+
+.modal {
+    z-index: 1050 !important;
+}
+
+/* FIX: Prevent multiple backdrops */
+body.modal-open {
+    overflow: hidden;
+    padding-right: 0 !important;
+}
+
+/* FIX: QR Code Modal specific fixes */
+#qrCodeModal .modal-dialog {
+    z-index: 1060;
+}
+
+#qrCodeModal .modal-content {
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+#qrCodeModal .modal-header {
+    background: linear-gradient(135deg, #ff6b35, #e55a2b);
+    color: white;
+    border-bottom: none;
+}
+
+#qrCodeModal .modal-body {
+    padding: 30px;
+}
+
+/* FIX: Ensure proper modal closing */
+.modal.fade.show {
+    display: block !important;
+}
+
+/* FIX: PDF text rendering */
+@font-face {
+    font-family: 'PDFFont';
+    src: local('Helvetica'), local('Arial');
+}
+
+/* FIX: Long press hint visibility */
+@media (max-width: 768px) {
+    .nav-link[data-longpress="true"]::after {
+        content: ' (Hold for QR)';
+        font-size: 0.6rem;
+        opacity: 0.5;
+    }
+}
+
+/* FIX: Prevent text selection issues in PDF */
+.pdf-text {
+    font-family: 'Helvetica', 'Arial', sans-serif;
+    letter-spacing: normal !important;
+}
+
+/* FIX: Loading overlay z-index */
+.loading-overlay {
+    z-index: 99999 !important;
+}
+
+/* FIX: QR code image cursor */
+#profile-qr-code {
+    cursor: pointer;
+    transition: transform 0.3s ease;
+    border: 2px solid #e1e5e9;
+}
+
+#profile-qr-code:hover {
+    transform: scale(1.05);
+    border-color: #ff6b35;
+}
+
+/* FIX: Modal cleanup animation */
+.modal.fade:not(.show) {
+    opacity: 0;
+    transition: opacity 0.15s linear;
+}
+
+/* FIX: Body overflow when modal is open */
+body {
+    overflow-x: hidden;
+}
+
+/* FIX: Ensure proper stacking context */
+.navbar {
+    z-index: 1000 !important;
+}
+
+.main-content {
+    position: relative;
+    z-index: 1;
+}

@@ -126,6 +126,41 @@
                 padding: 5px 0;
                 border-bottom: 1px solid #f5f5f5;
             }
+            
+            /* Improved menu grid for mobile */
+            .menu-grid-mobile {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+                margin: 0 -5px;
+            }
+            
+            .menu-grid-mobile .menu-item-col {
+                padding: 0 5px;
+            }
+            
+            .menu-item-card {
+                height: 160px;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                margin: 0;
+            }
+            
+            .menu-item-name {
+                font-size: 0.9rem;
+                line-height: 1.2;
+                margin-bottom: 8px;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+            
+            .menu-item-price {
+                font-size: 1rem;
+                margin-bottom: 10px;
+            }
         }
         
         /* Login Page Styles */
@@ -204,45 +239,55 @@
             color: #888;
         }
         
-        /* Mobile menu grid */
-        @media (max-width: 576px) {
+        /* Desktop menu grid */
+        .menu-grid-desktop {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+        
+        @media (max-width: 1200px) {
+            .menu-grid-desktop {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
+        @media (max-width: 992px) {
+            .menu-grid-desktop {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .menu-grid-desktop {
+                display: none;
+            }
+            
             .menu-grid-mobile {
                 display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                gap: 8px;
-                margin: 0 -5px;
+            }
+        }
+        
+        @media (min-width: 769px) {
+            .menu-grid-mobile {
+                display: none;
             }
             
-            .menu-grid-mobile .col-6 {
-                padding: 0 5px;
-                flex: 0 0 50%;
-                max-width: 50%;
+            .menu-grid-desktop {
+                display: grid;
             }
-            
-            .menu-item-card {
-                margin: 0;
-                height: 160px;
-                display: flex;
-                flex-direction: column;
-                justify-content: space-between;
-            }
-            
-            .menu-item-name {
-                font-size: 0.9rem;
-                line-height: 1.2;
-                margin-bottom: 8px;
-                display: -webkit-box;
-                -webkit-line-clamp: 2;
-                -webkit-box-orient: vertical;
-                overflow: hidden;
-            }
-            
-            .menu-item-price {
-                font-size: 1rem;
-                margin-bottom: 10px;
-            }
-            
-            /* Enhanced mobile table view */
+        }
+        
+        /* Enhanced mobile table view */
+        .mobile-table-view {
+            display: none;
+        }
+        
+        .desktop-table-view {
+            display: block;
+        }
+        
+        @media (max-width: 768px) {
             .mobile-table-view {
                 display: block;
             }
@@ -296,31 +341,6 @@
                 flex: 1;
                 padding: 10px;
             }
-        }
-        
-        @media (min-width: 577px) {
-            .mobile-table-view {
-                display: none;
-            }
-            
-            .desktop-table-view {
-                display: block;
-            }
-        }
-        
-        /* QR Code Modal Fix */
-        .modal-backdrop {
-            z-index: 1050 !important;
-        }
-        
-        .modal {
-            z-index: 1060 !important;
-        }
-        
-        /* Prevent body scroll when modal is open */
-        body.modal-open {
-            overflow: hidden !important;
-            padding-right: 0 !important;
         }
         
         /* Mobile navigation enhancements */
@@ -382,6 +402,177 @@
             body {
                 padding-bottom: 70px;
             }
+        }
+        
+        /* QR Code Modal Fix */
+        .modal-backdrop {
+            z-index: 1050 !important;
+        }
+        
+        .modal {
+            z-index: 1060 !important;
+        }
+        
+        /* Prevent body scroll when modal is open */
+        body.modal-open {
+            overflow: hidden !important;
+            padding-right: 0 !important;
+        }
+        
+        /* QR Code Modal specific fixes */
+        #qrCodeModal .modal-dialog {
+            z-index: 1060;
+        }
+        
+        #qrCodeModal .modal-content {
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        
+        #qrCodeModal .modal-header {
+            background: linear-gradient(135deg, #ff6b35, #e55a2b);
+            color: white;
+            border-bottom: none;
+        }
+        
+        #qrCodeModal .modal-body {
+            padding: 30px;
+        }
+        
+        /* FIX: Ensure proper modal closing */
+        .modal.fade.show {
+            display: block !important;
+        }
+        
+        /* FIX: PDF text rendering */
+        @font-face {
+            font-family: 'PDFFont';
+            src: local('Helvetica'), local('Arial');
+        }
+        
+        /* FIX: Loading overlay z-index */
+        .loading-overlay {
+            z-index: 99999 !important;
+        }
+        
+        /* FIX: QR code image cursor */
+        #profile-qr-code {
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            border: 2px solid #e1e5e9;
+        }
+        
+        #profile-qr-code:hover {
+            transform: scale(1.05);
+            border-color: #ff6b35;
+        }
+        
+        /* FIX: Modal cleanup animation */
+        .modal.fade:not(.show) {
+            opacity: 0;
+            transition: opacity 0.15s linear;
+        }
+        
+        /* FIX: Ensure proper stacking context */
+        .navbar {
+            z-index: 1000 !important;
+        }
+        
+        .main-content {
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Improved menu item cards */
+        .menu-item-card {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 120px;
+        }
+        
+        .menu-item-card:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .menu-item-card.selected {
+            background-color: rgba(255, 107, 53, 0.1);
+            border-color: var(--primary-color);
+        }
+        
+        .menu-item-name {
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 5px;
+            font-size: 0.95rem;
+        }
+        
+        .menu-item-price {
+            font-weight: 700;
+            color: var(--primary-color);
+            font-size: 1.1rem;
+        }
+        
+        .menu-item-quantity {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 10px;
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 6px;
+        }
+        
+        .quantity-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .quantity-btn:hover:not(:disabled) {
+            background: var(--primary-dark);
+            transform: scale(1.1);
+        }
+        
+        .quantity-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .quantity-input {
+            width: 50px;
+            text-align: center;
+            border: 2px solid #dee2e6;
+            border-radius: 5px;
+            padding: 6px;
+            font-weight: bold;
+            background: white;
+            font-size: 1rem;
+        }
+        
+        .quantity-input:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.25);
         }
     </style>
 </head>
@@ -684,46 +875,20 @@
                                 </div>
                             </div>
                             <div class="card-body">
-                                <div class="menu-grid-mobile" id="menu-items-container">
-                                    <!-- Menu items will be loaded here -->
+                                <!-- Desktop Grid View -->
+                                <div class="menu-grid-desktop" id="menu-items-desktop">
+                                    <!-- Desktop menu items will be loaded here -->
+                                </div>
+                                
+                                <!-- Mobile Grid View -->
+                                <div class="menu-grid-mobile" id="menu-items-mobile">
+                                    <!-- Mobile menu items will be loaded here -->
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Selected Items Card (Mobile Optimized) -->
-                        <div class="card mt-3 d-none d-md-block">
-                            <div class="card-header">
-                                <h5 class="card-title mb-0">
-                                    <i class="fas fa-shopping-cart me-2"></i>Selected Items
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="table-responsive desktop-table-view">
-                                    <table class="table table-hover" id="selected-items-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Item</th>
-                                                <th>Qty</th>
-                                                <th>Price</th>
-                                                <th>Subtotal</th>
-                                                <th>Tax</th>
-                                                <th class="text-end">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="selected-items-body">
-                                            <tr>
-                                                <td colspan="6" class="text-center text-muted py-4">
-                                                    No items selected
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Selected Items Mobile View -->
-                        <div class="card mt-3 d-block d-md-none" id="selected-items-mobile-card">
+                        <!-- Selected Items Card -->
+                        <div class="card mt-3">
                             <div class="card-header d-flex justify-content-between align-items-center">
                                 <h5 class="card-title mb-0">
                                     <i class="fas fa-shopping-cart me-2"></i>Selected Items
@@ -731,10 +896,36 @@
                                 <span class="badge bg-primary" id="selected-count">0 items</span>
                             </div>
                             <div class="card-body">
-                                <div id="selected-items-mobile">
-                                    <!-- Mobile selected items will be loaded here -->
-                                    <div class="text-center text-muted py-4">
-                                        No items selected
+                                <div class="desktop-table-view">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover" id="selected-items-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Item</th>
+                                                    <th>Qty</th>
+                                                    <th>Price</th>
+                                                    <th>Subtotal</th>
+                                                    <th>Tax</th>
+                                                    <th class="text-end">Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="selected-items-body">
+                                                <tr>
+                                                    <td colspan="6" class="text-center text-muted py-4">
+                                                        No items selected
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                
+                                <div class="mobile-table-view">
+                                    <div id="selected-items-mobile">
+                                        <!-- Mobile selected items will be loaded here -->
+                                        <div class="text-center text-muted py-4">
+                                            No items selected
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1461,6 +1652,24 @@
                     window.restaurantSystem.signOut();
                 }
             });
+            
+            // QR Code Modal fix - prevent scroll lock
+            const qrModal = document.getElementById('qrCodeModal');
+            if (qrModal) {
+                qrModal.addEventListener('hidden.bs.modal', function() {
+                    // Remove modal backdrop
+                    const backdrops = document.querySelectorAll('.modal-backdrop');
+                    backdrops.forEach(backdrop => backdrop.remove());
+                    
+                    // Remove modal-open class
+                    document.body.classList.remove('modal-open');
+                    document.body.style.paddingRight = '';
+                    
+                    // Remove inline styles
+                    document.body.style.overflow = '';
+                    document.body.style.paddingRight = '';
+                });
+            }
         });
     </script>
 </body>

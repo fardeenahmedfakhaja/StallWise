@@ -1,4 +1,4 @@
-// Restaurant Order Management System with Firebase - ENHANCED MOBILE VERSION
+// Restaurant Order Management System with Firebase - FIXED VERSION
 class RestaurantOrderSystem {
     constructor() {
         // Firebase services
@@ -22,6 +22,7 @@ class RestaurantOrderSystem {
         
         // Loading states
         this.loadingQueue = 0;
+        this.authChecked = false;
         
         // Current order state
         this.currentOrder = {
@@ -44,14 +45,18 @@ class RestaurantOrderSystem {
         this.init();
     }
     
-    // Default menu items - EMPTY
-    getDefaultMenu() {
-        return [];
-    }
+    // ================= INITIALIZATION =================
     
-    // Default categories - EMPTY
-    getDefaultCategories() {
-        return [];
+    init() {
+        // Show loading screen immediately
+        this.showLoading('Checking authentication...');
+        
+        // Initialize event listeners
+        this.initEventListeners();
+        this.setupLongPressEvents();
+        
+        // Check auth state
+        this.initAuth();
     }
     
     // Local storage methods
@@ -75,39 +80,31 @@ class RestaurantOrderSystem {
         }
     }
     
-    // ================= INITIALIZATION =================
+    // ================= AUTHENTICATION & LOGIN SCREEN =================
     
-    init() {
-        this.initEventListeners();
-        this.setupLongPressEvents();
-        
-        // Check auth state after DOM is fully loaded
-        setTimeout(() => {
-            this.initAuth();
-        }, 100);
-    }
-    
-    checkInitialSetup() {
-        // Check if user is already logged in
+    initAuth() {
+        // Listen for auth state changes
         this.auth.onAuthStateChanged(async (user) => {
             if (user) {
+                // User is signed in
                 this.currentUser = user;
                 await this.loadUserData(user.uid);
                 this.showApp();
             } else {
+                // User is signed out
                 this.showLoginScreen();
             }
+            this.authChecked = true;
+            this.hideLoading();
         });
     }
-    
-    // ================= AUTHENTICATION & LOGIN SCREEN =================
     
     showLoginScreen() {
         const loginScreen = document.getElementById('login-screen');
         const appContent = document.getElementById('app-content');
         
         if (loginScreen) {
-            loginScreen.classList.remove('hidden');
+            loginScreen.style.display = 'flex';
         }
         if (appContent) {
             appContent.style.display = 'none';
@@ -122,7 +119,7 @@ class RestaurantOrderSystem {
         const appContent = document.getElementById('app-content');
         
         if (loginScreen) {
-            loginScreen.classList.add('hidden');
+            loginScreen.style.display = 'none';
         }
         if (appContent) {
             appContent.style.display = 'block';
@@ -209,52 +206,7 @@ class RestaurantOrderSystem {
         }, 'Signing out...', button);
     }
     
-    initAuth() {
-        // Check if user is already logged in
-        this.auth.onAuthStateChanged(async (user) => {
-            if (user) {
-                this.currentUser = user;
-                await this.loadUserData(user.uid);
-                this.showApp();
-            } else {
-                this.showLoginScreen();
-            }
-        });
-    }
-    
-    // ================= MODAL FIXES =================
-    
-    cleanupModalBackdrops() {
-        const backdrops = document.querySelectorAll('.modal-backdrop');
-        backdrops.forEach(backdrop => backdrop.remove());
-        
-        document.body.classList.remove('modal-open');
-        document.body.style.paddingRight = '';
-        document.body.style.overflow = 'auto';
-    }
-    
-    showQRCode() {
-        if (this.businessData && this.businessData.qrCodeUrl) {
-            const qrCodeImage = document.getElementById('qrCodeImage');
-            qrCodeImage.src = this.businessData.qrCodeUrl;
-            
-            const modalElement = document.getElementById('qrCodeModal');
-            const modal = new bootstrap.Modal(modalElement);
-            
-            // Clean up event listeners
-            modalElement.removeEventListener('hidden.bs.modal', this.handleQRModalClose);
-            this.handleQRModalClose = () => {
-                this.cleanupModalBackdrops();
-            };
-            modalElement.addEventListener('hidden.bs.modal', this.handleQRModalClose);
-            
-            modal.show();
-        } else {
-            this.showNotification('No QR code uploaded yet', 'warning');
-        }
-    }
-    
-    // ================= ENHANCED MOBILE VIEWS =================
+    // ================= ENHANCED MENU RENDERING =================
     
     renderMenu(searchTerm = '') {
         const container = document.getElementById('menu-items-container');
@@ -303,16 +255,16 @@ class RestaurantOrderSystem {
             categoryDiv.className = 'menu-category';
             categoryDiv.id = `category-${categoryName.replace(/\s+/g, '-')}`;
             categoryDiv.innerHTML = `
-                <h6>${categoryName}</h6>
+                <h6 class="category-title">${categoryName}</h6>
                 <div class="row g-2" id="items-${categoryName.replace(/\s+/g, '-')}"></div>
             `;
             
             const itemsContainer = categoryDiv.querySelector(`#items-${categoryName.replace(/\s+/g, '-')}`);
             
             filteredItems.forEach(item => {
-                // Enhanced mobile responsive columns
-                const colSize = window.innerWidth <= 576 ? 'col-6' : 
-                               window.innerWidth <= 768 ? 'col-md-4' : 'col-md-4 col-lg-3';
+                // FIXED: Better responsive columns
+                const colSize = window.innerWidth < 768 ? 'col-6' : 
+                               window.innerWidth < 992 ? 'col-md-4' : 'col-lg-3';
                 
                 const itemDiv = document.createElement('div');
                 itemDiv.className = `${colSize}`;
@@ -325,9 +277,12 @@ class RestaurantOrderSystem {
                 itemDiv.innerHTML = `
                     <div class="menu-item-card ${isSelected ? 'selected' : ''}" 
                          data-item-id="${item.id}">
-                        <div>
-                            <div class="menu-item-name">${item.name}</div>
-                            <div class="menu-item-price">₹${item.price}${item.tax > 0 ? `<br><small class="text-muted">+${item.tax}% tax</small>` : ''}</div>
+                        <div class="menu-item-content">
+                            <div class="menu-item-header">
+                                <div class="menu-item-name">${item.name}</div>
+                                <div class="menu-item-price">₹${item.price}</div>
+                            </div>
+                            ${item.tax > 0 ? `<div class="menu-item-tax">+${item.tax}% tax</div>` : ''}
                         </div>
                         <div class="menu-item-quantity">
                             <button class="quantity-btn minus-btn" data-item-id="${item.id}">
@@ -440,451 +395,6 @@ class RestaurantOrderSystem {
                     if (element) {
                         element.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }
-                }
-            });
-        });
-    }
-    
-    renderOngoingOrders() {
-        const tbody = document.getElementById('ongoing-orders-body');
-        const mobileContainer = document.getElementById('mobile-ongoing-orders');
-        const emptyState = document.getElementById('no-ongoing-orders');
-        
-        if (!tbody || !emptyState) return;
-        
-        if (this.orders.length === 0) {
-            tbody.innerHTML = '';
-            if (mobileContainer) mobileContainer.innerHTML = '';
-            emptyState.style.display = 'block';
-            return;
-        }
-        
-        emptyState.style.display = 'none';
-        
-        // Desktop table view
-        let desktopHtml = '';
-        
-        // Mobile card view
-        let mobileHtml = '';
-        
-        this.orders.forEach(order => {
-            const orderTime = new Date(order.orderTime);
-            const itemsCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
-            const itemsText = order.items.slice(0, 2).map(item => `${item.name} (x${item.quantity})`).join(', ');
-            const moreItems = order.items.length > 2 ? ` +${order.items.length - 2} more` : '';
-            
-            // Desktop row
-            desktopHtml += `
-                <tr>
-                    <td>
-                        <button class="btn btn-sm btn-danger delete-order-btn" data-order-id="${order.id}" title="Delete Order">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </td>
-                    <td><strong>#${order.orderNumber || order.id}</strong></td>
-                    <td>${orderTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-                    <td>${order.customerName || 'Walk-in'}</td>
-                    <td>${itemsText}${moreItems}</td>
-                    <td>₹${order.total ? order.total.toFixed(2) : order.total}</td>
-                    <td>
-                        <span class="status-badge status-${order.status}">
-                            ${order.status}
-                        </span>
-                    </td>
-                    <td>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-sm btn-outline-primary view-order-btn" data-order-id="${order.id}" title="View Order">
-                                <i class="fas fa-eye"></i> View
-                            </button>
-                            <button class="btn btn-sm btn-success complete-order-btn" data-order-id="${order.id}" title="Complete Order">
-                                <i class="fas fa-check me-1"></i> Complete
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
-            
-            // Mobile card
-            mobileHtml += `
-                <div class="order-card-mobile">
-                    <div class="order-card-header">
-                        <div>
-                            <div class="order-card-number">#${order.orderNumber || order.id}</div>
-                            <div class="order-card-time">${orderTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                        </div>
-                        <span class="order-card-status status-${order.status}">${order.status}</span>
-                    </div>
-                    
-                    <div class="order-card-customer">
-                        <strong>Customer:</strong> ${order.customerName || 'Walk-in'}
-                    </div>
-                    
-                    <div class="order-card-items">
-                        ${order.items.slice(0, 3).map(item => `
-                            <div class="order-card-item">
-                                <span>${item.name}</span>
-                                <span>x${item.quantity}</span>
-                            </div>
-                        `).join('')}
-                        ${order.items.length > 3 ? `
-                            <div class="order-card-item text-muted">
-                                <span>+${order.items.length - 3} more items</span>
-                            </div>
-                        ` : ''}
-                    </div>
-                    
-                    <div class="order-card-total">
-                        Total: ₹${order.total ? order.total.toFixed(2) : order.total}
-                    </div>
-                    
-                    <div class="order-card-actions">
-                        <button class="btn btn-outline-primary view-order-btn" data-order-id="${order.id}">
-                            <i class="fas fa-eye me-1"></i> View
-                        </button>
-                        <button class="btn btn-success complete-order-btn" data-order-id="${order.id}">
-                            <i class="fas fa-check me-1"></i> Complete
-                        </button>
-                        <button class="btn btn-outline-danger delete-order-btn" data-order-id="${order.id}">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            `;
-        });
-        
-        tbody.innerHTML = desktopHtml;
-        if (mobileContainer) mobileContainer.innerHTML = mobileHtml;
-        
-        // Add event listeners
-        this.addOrderEventListeners();
-    }
-    
-    addOrderEventListeners() {
-        // View order buttons
-        document.querySelectorAll('.view-order-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const orderId = e.currentTarget.getAttribute('data-order-id');
-                this.viewOrderDetails(orderId);
-            });
-        });
-        
-        // Complete order buttons
-        document.querySelectorAll('.complete-order-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const orderId = e.currentTarget.getAttribute('data-order-id');
-                this.completeOrder(orderId, btn);
-            });
-        });
-        
-        // Delete order buttons
-        document.querySelectorAll('.delete-order-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const orderId = e.currentTarget.getAttribute('data-order-id');
-                this.deleteOrder(orderId, btn);
-            });
-        });
-    }
-    
-    renderCompletedOrders() {
-        const tbody = document.getElementById('completed-orders-body');
-        const mobileContainer = document.getElementById('mobile-completed-orders');
-        const emptyState = document.getElementById('no-completed-orders');
-        
-        if (!tbody || !emptyState) return;
-        
-        const filteredOrders = this.getFilteredOrders();
-        
-        if (filteredOrders.length === 0) {
-            tbody.innerHTML = '';
-            if (mobileContainer) mobileContainer.innerHTML = '';
-            emptyState.style.display = 'block';
-            this.updateSalesSummary(filteredOrders);
-            return;
-        }
-        
-        emptyState.style.display = 'none';
-        
-        // Desktop table view
-        let desktopHtml = '';
-        
-        // Mobile card view
-        let mobileHtml = '';
-        
-        filteredOrders.forEach(order => {
-            const orderTime = new Date(order.orderTime);
-            const completedTime = new Date(order.completedTime);
-            const itemsCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
-            const profit = order.totalProfit || (order.total - (order.totalCost || 0));
-            const profitClass = profit >= 0 ? 'profit-positive' : 'profit-negative';
-            
-            // Desktop row
-            desktopHtml += `
-                <tr>
-                    <td><strong>#${order.orderNumber || order.id}</strong></td>
-                    <td>${orderTime.toLocaleDateString()}</td>
-                    <td>${order.customerName || 'Walk-in'}</td>
-                    <td>${itemsCount} items</td>
-                    <td>₹${order.total ? order.total.toFixed(2) : order.total}</td>
-                    <td class="${profitClass}">₹${profit.toFixed(2)}</td>
-                    <td>${completedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-                </tr>
-            `;
-            
-            // Mobile card
-            mobileHtml += `
-                <div class="completed-card-mobile">
-                    <div class="completed-card-header">
-                        <div class="completed-card-number">#${order.orderNumber || order.id}</div>
-                        <div class="completed-card-date">${orderTime.toLocaleDateString()}</div>
-                    </div>
-                    
-                    <div class="completed-card-details">
-                        <div class="completed-card-row">
-                            <span>Customer:</span>
-                            <span>${order.customerName || 'Walk-in'}</span>
-                        </div>
-                        <div class="completed-card-row">
-                            <span>Items:</span>
-                            <span>${itemsCount}</span>
-                        </div>
-                        <div class="completed-card-row">
-                            <span>Completed:</span>
-                            <span>${completedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                        </div>
-                    </div>
-                    
-                    <div class="completed-card-total">
-                        ₹${order.total ? order.total.toFixed(2) : order.total}
-                    </div>
-                    
-                    <div class="completed-card-profit ${profitClass}">
-                        Profit: ₹${profit.toFixed(2)}
-                    </div>
-                </div>
-            `;
-        });
-        
-        tbody.innerHTML = desktopHtml;
-        if (mobileContainer) mobileContainer.innerHTML = mobileHtml;
-        
-        // Update sales summary
-        this.updateSalesSummary(filteredOrders);
-    }
-    
-    renderMenuManagement() {
-        const tbody = document.getElementById('menu-management-body');
-        const mobileContainer = document.getElementById('mobile-menu-list');
-        
-        if (!tbody) return;
-        
-        if (this.menu.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="8" class="text-center py-4">
-                        <i class="fas fa-utensils fa-2x text-muted mb-2"></i>
-                        <p class="text-muted">No menu items added yet</p>
-                        <button class="btn btn-sm btn-primary mt-2" id="add-first-item-btn">
-                            <i class="fas fa-plus me-1"></i> Add First Item
-                        </button>
-                    </td>
-                </tr>
-            `;
-            
-            if (mobileContainer) {
-                mobileContainer.innerHTML = `
-                    <div class="text-center py-5">
-                        <i class="fas fa-utensils fa-3x text-muted mb-3"></i>
-                        <h5 class="text-muted">No Menu Items</h5>
-                        <p class="text-muted">Add your first menu item</p>
-                        <button class="btn btn-primary mt-3" id="add-first-item-mobile-btn">
-                            <i class="fas fa-plus me-1"></i> Add Item
-                        </button>
-                    </div>
-                `;
-            }
-            
-            // Add event listeners
-            setTimeout(() => {
-                document.getElementById('add-first-item-btn')?.addEventListener('click', () => {
-                    this.showNewCategoryInput();
-                });
-                document.getElementById('add-first-item-mobile-btn')?.addEventListener('click', () => {
-                    this.showNewCategoryInput();
-                });
-            }, 100);
-            
-            return;
-        }
-        
-        // Desktop table view
-        let desktopHtml = '';
-        
-        // Mobile card view
-        let mobileHtml = '';
-        
-        // Group items by category
-        const itemsByCategory = {};
-        this.menu.forEach(item => {
-            if (!itemsByCategory[item.category]) {
-                itemsByCategory[item.category] = [];
-            }
-            itemsByCategory[item.category].push(item);
-        });
-        
-        // Render by category
-        this.categories.forEach(categoryObj => {
-            const categoryName = categoryObj.name || categoryObj;
-            const items = itemsByCategory[categoryName] || [];
-            
-            // Desktop category header
-            desktopHtml += `
-                <tr class="category-header" style="background-color: #f8f9fa;">
-                    <td colspan="8">
-                        <strong>${categoryName}</strong>
-                    </td>
-                </tr>
-            `;
-            
-            // Items for this category
-            items.forEach(item => {
-                const profit = (item.price - item.cost);
-                const profitMargin = item.price > 0 ? ((profit / item.price) * 100).toFixed(1) : 0;
-                const profitClass = profit >= 0 ? 'profit-positive' : 'profit-negative';
-                
-                // Desktop row
-                desktopHtml += `
-                    <tr class="menu-item-row ${item.outOfStock ? 'out-of-stock' : ''}" data-item-id="${item.id}">
-                        <td>${item.category}</td>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <span class="item-name">${item.name}</span>
-                                ${item.outOfStock ? '<span class="badge bg-danger ms-2">Out of Stock</span>' : ''}
-                            </div>
-                        </td>
-                        <td>₹${item.cost}</td>
-                        <td>₹${item.price}</td>
-                        <td>${item.tax || 0}%</td>
-                        <td class="${profitClass}">₹${profit.toFixed(2)}</td>
-                        <td>
-                            <div class="form-check">
-                                <input class="form-check-input out-of-stock-checkbox" 
-                                       type="checkbox" 
-                                       data-item-id="${item.id}"
-                                       ${item.outOfStock ? 'checked' : ''}>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-sm btn-outline-primary edit-item-btn" 
-                                        data-item-id="${item.id}" title="Edit">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger delete-item-btn" 
-                                        data-item-id="${item.id}" title="Delete">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-                
-                // Mobile card
-                mobileHtml += `
-                    <div class="menu-item-card-mobile" data-item-id="${item.id}">
-                        ${item.outOfStock ? '<div class="out-of-stock-badge">Out of Stock</div>' : ''}
-                        <div class="menu-item-header">
-                            <div class="menu-item-name-mobile">${item.name}</div>
-                            <span class="menu-item-category">${item.category}</span>
-                        </div>
-                        
-                        <div class="menu-item-details">
-                            <div>
-                                <div class="menu-item-price-mobile">₹${item.price}</div>
-                                <div class="menu-item-cost">Cost: ₹${item.cost}</div>
-                            </div>
-                            <div class="text-right">
-                                <div class="text-success">Tax: ${item.tax || 0}%</div>
-                                <div class="${profitClass}">Profit: ₹${profit.toFixed(2)}</div>
-                            </div>
-                        </div>
-                        
-                        <div class="menu-item-stats">
-                            <div class="stat-box">
-                                <div class="stat-label-mobile">Cost</div>
-                                <div class="stat-value-mobile">₹${item.cost}</div>
-                            </div>
-                            <div class="stat-box">
-                                <div class="stat-label-mobile">Price</div>
-                                <div class="stat-value-mobile">₹${item.price}</div>
-                            </div>
-                            <div class="stat-box">
-                                <div class="stat-label-mobile">Margin</div>
-                                <div class="stat-value-mobile ${profitClass}">${profitMargin}%</div>
-                            </div>
-                        </div>
-                        
-                        <div class="menu-item-actions">
-                            <button class="btn btn-outline-primary edit-item-btn" data-item-id="${item.id}">
-                                <i class="fas fa-edit me-1"></i> Edit
-                            </button>
-                            <button class="btn btn-outline-danger delete-item-btn" data-item-id="${item.id}">
-                                <i class="fas fa-trash me-1"></i> Delete
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
-        });
-        
-        tbody.innerHTML = desktopHtml;
-        if (mobileContainer) mobileContainer.innerHTML = mobileHtml;
-        
-        // Add event listeners
-        this.addMenuManagementEventListeners();
-    }
-    
-    addMenuManagementEventListeners() {
-        // Edit buttons
-        document.querySelectorAll('.edit-item-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const itemId = e.currentTarget.getAttribute('data-item-id');
-                this.editMenuItem(itemId);
-            });
-        });
-        
-        // Delete buttons
-        document.querySelectorAll('.delete-item-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const itemId = e.currentTarget.getAttribute('data-item-id');
-                this.deleteMenuItem(itemId, btn);
-            });
-        });
-        
-        // Out of stock checkboxes
-        document.querySelectorAll('.out-of-stock-checkbox').forEach(checkbox => {
-            checkbox.addEventListener('change', (e) => {
-                const itemId = e.target.getAttribute('data-item-id');
-                const isOutOfStock = e.target.checked;
-                this.updateItemStockStatus(itemId, isOutOfStock, checkbox);
-            });
-        });
-        
-        // Clickable rows (desktop)
-        document.querySelectorAll('.menu-item-row').forEach(row => {
-            row.addEventListener('click', (e) => {
-                if (!e.target.closest('.btn') && !e.target.closest('.form-check')) {
-                    const itemId = row.getAttribute('data-item-id');
-                    this.editMenuItem(itemId);
-                }
-            });
-        });
-        
-        // Clickable cards (mobile)
-        document.querySelectorAll('.menu-item-card-mobile').forEach(card => {
-            card.addEventListener('click', (e) => {
-                if (!e.target.closest('.btn')) {
-                    const itemId = card.getAttribute('data-item-id');
-                    this.editMenuItem(itemId);
                 }
             });
         });
@@ -1132,6 +642,7 @@ class RestaurantOrderSystem {
                 this.updateMobileSelectedItems();
                 this.updateMobileCategoryFilter();
             }
+            this.renderMenu();
         });
     }
     
@@ -1916,6 +1427,232 @@ class RestaurantOrderSystem {
         return filteredOrders;
     }
     
+    renderOngoingOrders() {
+        const tbody = document.getElementById('ongoing-orders-body');
+        const mobileContainer = document.getElementById('mobile-ongoing-orders');
+        const emptyState = document.getElementById('no-ongoing-orders');
+        
+        if (!tbody || !emptyState) return;
+        
+        if (this.orders.length === 0) {
+            tbody.innerHTML = '';
+            if (mobileContainer) mobileContainer.innerHTML = '';
+            emptyState.style.display = 'block';
+            return;
+        }
+        
+        emptyState.style.display = 'none';
+        
+        // Desktop table view
+        let desktopHtml = '';
+        
+        // Mobile card view
+        let mobileHtml = '';
+        
+        this.orders.forEach(order => {
+            const orderTime = new Date(order.orderTime);
+            const itemsCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
+            const itemsText = order.items.slice(0, 2).map(item => `${item.name} (x${item.quantity})`).join(', ');
+            const moreItems = order.items.length > 2 ? ` +${order.items.length - 2} more` : '';
+            
+            // Desktop row
+            desktopHtml += `
+                <tr>
+                    <td>
+                        <button class="btn btn-sm btn-danger delete-order-btn" data-order-id="${order.id}" title="Delete Order">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                    <td><strong>#${order.orderNumber || order.id}</strong></td>
+                    <td>${orderTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                    <td>${order.customerName || 'Walk-in'}</td>
+                    <td>${itemsText}${moreItems}</td>
+                    <td>₹${order.total ? order.total.toFixed(2) : order.total}</td>
+                    <td>
+                        <span class="status-badge status-${order.status}">
+                            ${order.status}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-outline-primary view-order-btn" data-order-id="${order.id}" title="View Order">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                            <button class="btn btn-sm btn-success complete-order-btn" data-order-id="${order.id}" title="Complete Order">
+                                <i class="fas fa-check me-1"></i> Complete
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            
+            // Mobile card
+            mobileHtml += `
+                <div class="order-card-mobile">
+                    <div class="order-card-header">
+                        <div>
+                            <div class="order-card-number">#${order.orderNumber || order.id}</div>
+                            <div class="order-card-time">${orderTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                        </div>
+                        <span class="order-card-status status-${order.status}">${order.status}</span>
+                    </div>
+                    
+                    <div class="order-card-customer">
+                        <strong>Customer:</strong> ${order.customerName || 'Walk-in'}
+                    </div>
+                    
+                    <div class="order-card-items">
+                        ${order.items.slice(0, 3).map(item => `
+                            <div class="order-card-item">
+                                <span>${item.name}</span>
+                                <span>x${item.quantity}</span>
+                            </div>
+                        `).join('')}
+                        ${order.items.length > 3 ? `
+                            <div class="order-card-item text-muted">
+                                <span>+${order.items.length - 3} more items</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="order-card-total">
+                        Total: ₹${order.total ? order.total.toFixed(2) : order.total}
+                    </div>
+                    
+                    <div class="order-card-actions">
+                        <button class="btn btn-outline-primary view-order-btn" data-order-id="${order.id}">
+                            <i class="fas fa-eye me-1"></i> View
+                        </button>
+                        <button class="btn btn-success complete-order-btn" data-order-id="${order.id}">
+                            <i class="fas fa-check me-1"></i> Complete
+                        </button>
+                        <button class="btn btn-outline-danger delete-order-btn" data-order-id="${order.id}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        tbody.innerHTML = desktopHtml;
+        if (mobileContainer) mobileContainer.innerHTML = mobileHtml;
+        
+        // Add event listeners
+        this.addOrderEventListeners();
+    }
+    
+    addOrderEventListeners() {
+        // View order buttons
+        document.querySelectorAll('.view-order-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const orderId = e.currentTarget.getAttribute('data-order-id');
+                this.viewOrderDetails(orderId);
+            });
+        });
+        
+        // Complete order buttons
+        document.querySelectorAll('.complete-order-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const orderId = e.currentTarget.getAttribute('data-order-id');
+                this.completeOrder(orderId, btn);
+            });
+        });
+        
+        // Delete order buttons
+        document.querySelectorAll('.delete-order-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const orderId = e.currentTarget.getAttribute('data-order-id');
+                this.deleteOrder(orderId, btn);
+            });
+        });
+    }
+    
+    renderCompletedOrders() {
+        const tbody = document.getElementById('completed-orders-body');
+        const mobileContainer = document.getElementById('mobile-completed-orders');
+        const emptyState = document.getElementById('no-completed-orders');
+        
+        if (!tbody || !emptyState) return;
+        
+        const filteredOrders = this.getFilteredOrders();
+        
+        if (filteredOrders.length === 0) {
+            tbody.innerHTML = '';
+            if (mobileContainer) mobileContainer.innerHTML = '';
+            emptyState.style.display = 'block';
+            this.updateSalesSummary(filteredOrders);
+            return;
+        }
+        
+        emptyState.style.display = 'none';
+        
+        // Desktop table view
+        let desktopHtml = '';
+        
+        // Mobile card view
+        let mobileHtml = '';
+        
+        filteredOrders.forEach(order => {
+            const orderTime = new Date(order.orderTime);
+            const completedTime = new Date(order.completedTime);
+            const itemsCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
+            const profit = order.totalProfit || (order.total - (order.totalCost || 0));
+            const profitClass = profit >= 0 ? 'profit-positive' : 'profit-negative';
+            
+            // Desktop row
+            desktopHtml += `
+                <tr>
+                    <td><strong>#${order.orderNumber || order.id}</strong></td>
+                    <td>${orderTime.toLocaleDateString()}</td>
+                    <td>${order.customerName || 'Walk-in'}</td>
+                    <td>${itemsCount} items</td>
+                    <td>₹${order.total ? order.total.toFixed(2) : order.total}</td>
+                    <td class="${profitClass}">₹${profit.toFixed(2)}</td>
+                    <td>${completedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                </tr>
+            `;
+            
+            // Mobile card
+            mobileHtml += `
+                <div class="completed-card-mobile">
+                    <div class="completed-card-header">
+                        <div class="completed-card-number">#${order.orderNumber || order.id}</div>
+                        <div class="completed-card-date">${orderTime.toLocaleDateString()}</div>
+                    </div>
+                    
+                    <div class="completed-card-details">
+                        <div class="completed-card-row">
+                            <span>Customer:</span>
+                            <span>${order.customerName || 'Walk-in'}</span>
+                        </div>
+                        <div class="completed-card-row">
+                            <span>Items:</span>
+                            <span>${itemsCount}</span>
+                        </div>
+                        <div class="completed-card-row">
+                            <span>Completed:</span>
+                            <span>${completedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="completed-card-total">
+                        ₹${order.total ? order.total.toFixed(2) : order.total}
+                    </div>
+                    
+                    <div class="completed-card-profit ${profitClass}">
+                        Profit: ₹${profit.toFixed(2)}
+                    </div>
+                </div>
+            `;
+        });
+        
+        tbody.innerHTML = desktopHtml;
+        if (mobileContainer) mobileContainer.innerHTML = mobileHtml;
+        
+        // Update sales summary
+        this.updateSalesSummary(filteredOrders);
+    }
+    
     updateSalesSummary(orders) {
         const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
         const totalCost = orders.reduce((sum, order) => sum + (order.totalCost || 0), 0);
@@ -2114,6 +1851,225 @@ class RestaurantOrderSystem {
     }
     
     // ================= MENU MANAGEMENT =================
+    
+    renderMenuManagement() {
+        const tbody = document.getElementById('menu-management-body');
+        const mobileContainer = document.getElementById('mobile-menu-list');
+        
+        if (!tbody) return;
+        
+        if (this.menu.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center py-4">
+                        <i class="fas fa-utensils fa-2x text-muted mb-2"></i>
+                        <p class="text-muted">No menu items added yet</p>
+                        <button class="btn btn-sm btn-primary mt-2" id="add-first-item-btn">
+                            <i class="fas fa-plus me-1"></i> Add First Item
+                        </button>
+                    </td>
+                </tr>
+            `;
+            
+            if (mobileContainer) {
+                mobileContainer.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-utensils fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No Menu Items</h5>
+                        <p class="text-muted">Add your first menu item</p>
+                        <button class="btn btn-primary mt-3" id="add-first-item-mobile-btn">
+                            <i class="fas fa-plus me-1"></i> Add Item
+                        </button>
+                    </div>
+                `;
+            }
+            
+            // Add event listeners
+            setTimeout(() => {
+                document.getElementById('add-first-item-btn')?.addEventListener('click', () => {
+                    this.showNewCategoryInput();
+                });
+                document.getElementById('add-first-item-mobile-btn')?.addEventListener('click', () => {
+                    this.showNewCategoryInput();
+                });
+            }, 100);
+            
+            return;
+        }
+        
+        // Desktop table view
+        let desktopHtml = '';
+        
+        // Mobile card view
+        let mobileHtml = '';
+        
+        // Group items by category
+        const itemsByCategory = {};
+        this.menu.forEach(item => {
+            if (!itemsByCategory[item.category]) {
+                itemsByCategory[item.category] = [];
+            }
+            itemsByCategory[item.category].push(item);
+        });
+        
+        // Render by category
+        this.categories.forEach(categoryObj => {
+            const categoryName = categoryObj.name || categoryObj;
+            const items = itemsByCategory[categoryName] || [];
+            
+            // Desktop category header
+            desktopHtml += `
+                <tr class="category-header" style="background-color: #f8f9fa;">
+                    <td colspan="8">
+                        <strong>${categoryName}</strong>
+                    </td>
+                </tr>
+            `;
+            
+            // Items for this category
+            items.forEach(item => {
+                const profit = (item.price - item.cost);
+                const profitMargin = item.price > 0 ? ((profit / item.price) * 100).toFixed(1) : 0;
+                const profitClass = profit >= 0 ? 'profit-positive' : 'profit-negative';
+                
+                // Desktop row
+                desktopHtml += `
+                    <tr class="menu-item-row ${item.outOfStock ? 'out-of-stock' : ''}" data-item-id="${item.id}">
+                        <td>${item.category}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <span class="item-name">${item.name}</span>
+                                ${item.outOfStock ? '<span class="badge bg-danger ms-2">Out of Stock</span>' : ''}
+                            </div>
+                        </td>
+                        <td>₹${item.cost}</td>
+                        <td>₹${item.price}</td>
+                        <td>${item.tax || 0}%</td>
+                        <td class="${profitClass}">₹${profit.toFixed(2)}</td>
+                        <td>
+                            <div class="form-check">
+                                <input class="form-check-input out-of-stock-checkbox" 
+                                       type="checkbox" 
+                                       data-item-id="${item.id}"
+                                       ${item.outOfStock ? 'checked' : ''}>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-outline-primary edit-item-btn" 
+                                        data-item-id="${item.id}" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger delete-item-btn" 
+                                        data-item-id="${item.id}" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                
+                // Mobile card
+                mobileHtml += `
+                    <div class="menu-item-card-mobile" data-item-id="${item.id}">
+                        ${item.outOfStock ? '<div class="out-of-stock-badge">Out of Stock</div>' : ''}
+                        <div class="menu-item-header">
+                            <div class="menu-item-name-mobile">${item.name}</div>
+                            <span class="menu-item-category">${item.category}</span>
+                        </div>
+                        
+                        <div class="menu-item-details">
+                            <div>
+                                <div class="menu-item-price-mobile">₹${item.price}</div>
+                                <div class="menu-item-cost">Cost: ₹${item.cost}</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-success">Tax: ${item.tax || 0}%</div>
+                                <div class="${profitClass}">Profit: ₹${profit.toFixed(2)}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item-stats">
+                            <div class="stat-box">
+                                <div class="stat-label-mobile">Cost</div>
+                                <div class="stat-value-mobile">₹${item.cost}</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-label-mobile">Price</div>
+                                <div class="stat-value-mobile">₹${item.price}</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-label-mobile">Margin</div>
+                                <div class="stat-value-mobile ${profitClass}">${profitMargin}%</div>
+                            </div>
+                        </div>
+                        
+                        <div class="menu-item-actions">
+                            <button class="btn btn-outline-primary edit-item-btn" data-item-id="${item.id}">
+                                <i class="fas fa-edit me-1"></i> Edit
+                            </button>
+                            <button class="btn btn-outline-danger delete-item-btn" data-item-id="${item.id}">
+                                <i class="fas fa-trash me-1"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        });
+        
+        tbody.innerHTML = desktopHtml;
+        if (mobileContainer) mobileContainer.innerHTML = mobileHtml;
+        
+        // Add event listeners
+        this.addMenuManagementEventListeners();
+    }
+    
+    addMenuManagementEventListeners() {
+        // Edit buttons
+        document.querySelectorAll('.edit-item-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const itemId = e.currentTarget.getAttribute('data-item-id');
+                this.editMenuItem(itemId);
+            });
+        });
+        
+        // Delete buttons
+        document.querySelectorAll('.delete-item-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const itemId = e.currentTarget.getAttribute('data-item-id');
+                this.deleteMenuItem(itemId, btn);
+            });
+        });
+        
+        // Out of stock checkboxes
+        document.querySelectorAll('.out-of-stock-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', (e) => {
+                const itemId = e.target.getAttribute('data-item-id');
+                const isOutOfStock = e.target.checked;
+                this.updateItemStockStatus(itemId, isOutOfStock, checkbox);
+            });
+        });
+        
+        // Clickable rows (desktop)
+        document.querySelectorAll('.menu-item-row').forEach(row => {
+            row.addEventListener('click', (e) => {
+                if (!e.target.closest('.btn') && !e.target.closest('.form-check')) {
+                    const itemId = row.getAttribute('data-item-id');
+                    this.editMenuItem(itemId);
+                }
+            });
+        });
+        
+        // Clickable cards (mobile)
+        document.querySelectorAll('.menu-item-card-mobile').forEach(card => {
+            card.addEventListener('click', (e) => {
+                if (!e.target.closest('.btn')) {
+                    const itemId = card.getAttribute('data-item-id');
+                    this.editMenuItem(itemId);
+                }
+            });
+        });
+    }
     
     loadCategoriesDropdown() {
         const categorySelect = document.getElementById('item-category');
@@ -2410,108 +2366,6 @@ class RestaurantOrderSystem {
                 checkbox.checked = !isOutOfStock;
             }
         }, 'Updating item status...');
-    }
-    
-    async deleteCategoryWithItems(categoryName, button) {
-        const itemsInCategory = this.menu.filter(item => item.category === categoryName);
-        
-        if (itemsInCategory.length > 0) {
-            const confirmed = confirm(
-                `Warning: This will delete the category "${categoryName}" and all ${itemsInCategory.length} item(s) in it.\n\nThis action cannot be undone. Are you sure you want to proceed?`
-            );
-            
-            if (!confirmed) return;
-        } else {
-            if (!confirm(`Are you sure you want to delete the category "${categoryName}"?`)) {
-                return;
-            }
-        }
-        
-        await this.withLoading(async () => {
-            try {
-                for (const item of itemsInCategory) {
-                    await this.db.collection('businesses')
-                        .doc(this.businessId)
-                        .collection('menu')
-                        .doc(item.id)
-                        .delete();
-                    
-                    this.menu = this.menu.filter(menuItem => menuItem.id !== item.id);
-                }
-                
-                this.categories = this.categories.filter(cat => 
-                    (cat.name || cat) !== categoryName
-                );
-                
-                await this.db.collection('businesses').doc(this.businessId).update({
-                    categories: this.categories,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                
-                this.loadCategoriesDropdown();
-                this.renderMenuManagement();
-                this.renderMenu();
-                this.updateQuickActions();
-                
-                this.saveData('menu', this.menu);
-                this.saveData('categories', this.categories);
-                
-                this.showNotification(
-                    `Category "${categoryName}" and ${itemsInCategory.length} item(s) deleted successfully`, 
-                    'success'
-                );
-                
-            } catch (error) {
-                console.error('Error deleting category with items:', error);
-                this.showNotification('Error deleting category and items', 'error');
-            }
-        }, 'Deleting category...', button);
-    }
-    
-    async toggleCategoryFavorite(categoryName, button) {
-        await this.withLoading(async () => {
-            try {
-                const categoryIndex = this.categories.findIndex(cat => 
-                    (cat.name || cat) === categoryName
-                );
-                
-                if (categoryIndex === -1) return;
-                
-                const category = this.categories[categoryIndex];
-                if (typeof category === 'object') {
-                    category.favorite = !category.favorite;
-                } else {
-                    this.categories[categoryIndex] = {
-                        name: category,
-                        favorite: true
-                    };
-                }
-                
-                await this.db.collection('businesses').doc(this.businessId).update({
-                    categories: this.categories,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                
-                this.renderMenuManagement();
-                this.updateQuickActions();
-                
-                const isFavorite = typeof category === 'object' ? category.favorite : true;
-                const icon = button.querySelector('i');
-                if (icon) {
-                    icon.className = `fas fa-star ${isFavorite ? 'text-warning' : 'text-muted'}`;
-                    button.title = isFavorite ? 'Remove from favorites' : 'Add to favorites';
-                }
-                
-                this.showNotification(
-                    `${categoryName} ${isFavorite ? 'added to' : 'removed from'} favorites`, 
-                    'success'
-                );
-                
-            } catch (error) {
-                console.error('Error toggling category favorite:', error);
-                this.showNotification('Error updating category', 'error');
-            }
-        }, 'Updating category...', button);
     }
     
     // ================= FIREBASE DATA =================
@@ -2899,6 +2753,38 @@ class RestaurantOrderSystem {
         if (totalBusinessProfit) {
             const totalProfit = this.completedOrders.reduce((sum, order) => sum + (order.totalProfit || 0), 0);
             totalBusinessProfit.textContent = `₹${totalProfit.toFixed(2)}`;
+        }
+    }
+    
+    // ================= MODAL FIXES =================
+    
+    cleanupModalBackdrops() {
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        backdrops.forEach(backdrop => backdrop.remove());
+        
+        document.body.classList.remove('modal-open');
+        document.body.style.paddingRight = '';
+        document.body.style.overflow = 'auto';
+    }
+    
+    showQRCode() {
+        if (this.businessData && this.businessData.qrCodeUrl) {
+            const qrCodeImage = document.getElementById('qrCodeImage');
+            qrCodeImage.src = this.businessData.qrCodeUrl;
+            
+            const modalElement = document.getElementById('qrCodeModal');
+            const modal = new bootstrap.Modal(modalElement);
+            
+            // Clean up event listeners
+            modalElement.removeEventListener('hidden.bs.modal', this.handleQRModalClose);
+            this.handleQRModalClose = () => {
+                this.cleanupModalBackdrops();
+            };
+            modalElement.addEventListener('hidden.bs.modal', this.handleQRModalClose);
+            
+            modal.show();
+        } else {
+            this.showNotification('No QR code uploaded yet', 'warning');
         }
     }
     

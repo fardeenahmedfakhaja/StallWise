@@ -40,6 +40,9 @@ class RestaurantOrderSystem {
         this.topItemsRevenueChart = null;
         this.categoryItemCharts = {};
         
+        // Modal instances
+        this.qrModal = null;
+        
         // Initialize
         this.init();
     }
@@ -100,6 +103,9 @@ class RestaurantOrderSystem {
                 const tabId = link.getAttribute('data-tab');
                 this.switchTab(tabId);
                 
+                // Update mobile bottom nav
+                this.updateMobileNav(tabId);
+                
                 // Close navbar on mobile
                 if (window.innerWidth <= 991) {
                     const navbar = document.getElementById('navbarNav');
@@ -115,6 +121,17 @@ class RestaurantOrderSystem {
         
         // Set the initial tab
         this.switchTab('take-order');
+        this.updateMobileNav('take-order');
+    }
+    
+    // Update mobile bottom navigation
+    updateMobileNav(tabId) {
+        document.querySelectorAll('.mobile-nav-item').forEach(item => {
+            item.classList.remove('active');
+            if (item.getAttribute('data-tab') === tabId) {
+                item.classList.add('active');
+            }
+        });
     }
     
     // Setup long press events for QR code
@@ -132,14 +149,9 @@ class RestaurantOrderSystem {
         profileLink.addEventListener('touchend', () => {
             clearTimeout(pressTimer);
         });
-        
-        profileLink.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            this.showQRCode();
-        });
     }
     
-    // Show QR Code Modal
+    // Show QR Code Modal - FIXED SCROLL ISSUE
     showQRCode() {
         if (this.businessData && this.businessData.qrCodeUrl) {
             const qrCodeImage = document.getElementById('qrCodeImage');
@@ -148,24 +160,52 @@ class RestaurantOrderSystem {
             // Get modal element
             const modalElement = document.getElementById('qrCodeModal');
             
+            // Remove any existing modal backdrop
+            this.cleanupModalBackdrops();
+            
             // Create and show modal
-            const modal = new bootstrap.Modal(modalElement, {
+            this.qrModal = new bootstrap.Modal(modalElement, {
                 backdrop: true,
-                keyboard: true
+                keyboard: true,
+                focus: true
             });
-            modal.show();
             
-            // FIX: Clean up event listeners when modal is hidden
-            const hideHandler = () => {
-                modal.hide();
-                modal.dispose();
-                modalElement.removeEventListener('hidden.bs.modal', hideHandler);
-            };
+            // Add event listener for modal hide
+            modalElement.addEventListener('hidden.bs.modal', () => {
+                this.cleanupModalBackdrops();
+            });
             
-            modalElement.addEventListener('hidden.bs.modal', hideHandler);
+            // Add event listener for modal show
+            modalElement.addEventListener('show.bs.modal', () => {
+                document.body.classList.add('modal-open');
+                document.body.style.paddingRight = '0px';
+            });
+            
+            this.qrModal.show();
+            
         } else {
             this.showNotification('No QR code uploaded yet', 'warning');
         }
+    }
+    
+    // Cleanup modal backdrops
+    cleanupModalBackdrops() {
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        backdrops.forEach(backdrop => {
+            backdrop.remove();
+        });
+        
+        // Remove modal-open class and reset padding
+        document.body.classList.remove('modal-open');
+        document.body.style.paddingRight = '';
+        
+        // Remove any leftover modal divs (except our main modals)
+        const modals = document.querySelectorAll('.modal');
+        modals.forEach(modal => {
+            if (!modal.classList.contains('show') && !['qrCodeModal', 'profileSetupModal', 'orderDetailsModal'].includes(modal.id)) {
+                modal.remove();
+            }
+        });
     }
     
     // Switch between tabs
@@ -340,7 +380,10 @@ class RestaurantOrderSystem {
                 this.currentUser = user;
                 this.updateUserUI();
                 
-                // FIX: Add small delay to prevent UI freezing
+                // Show main app, hide login page
+                this.showMainApp();
+                
+                // Load user data
                 setTimeout(async () => {
                     await this.loadUserData(user.uid);
                 }, 100);
@@ -350,12 +393,22 @@ class RestaurantOrderSystem {
                 this.businessId = null;
                 this.businessData = null;
                 
-                // FIX: Use setTimeout to prevent modal stacking
-                setTimeout(() => {
-                    this.showAuthModal();
-                }, 300);
+                // Show login page, hide main app
+                this.showLoginPage();
             }
         });
+    }
+    
+    // Show login page
+    showLoginPage() {
+        document.getElementById('login-page').classList.add('active');
+        document.getElementById('main-app').style.display = 'none';
+    }
+    
+    // Show main app
+    showMainApp() {
+        document.getElementById('login-page').classList.remove('active');
+        document.getElementById('main-app').style.display = 'block';
     }
     
     // Load user data from Firestore
@@ -370,13 +423,8 @@ class RestaurantOrderSystem {
                 if (this.userData.businessId) {
                     this.businessId = this.userData.businessId;
                     await this.loadBusinessData();
-                    
-                    // FIX: Delay hiding auth modal to prevent UI freeze
-                    setTimeout(() => {
-                        this.hideAuthModal();
-                    }, 200);
                 } else {
-                    // FIX: Delay showing profile setup modal
+                    // Show profile setup modal
                     setTimeout(() => {
                         this.showProfileSetupModal();
                     }, 300);
@@ -391,7 +439,7 @@ class RestaurantOrderSystem {
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 
-                // FIX: Delay showing profile setup modal
+                // Show profile setup modal
                 setTimeout(() => {
                     this.showProfileSetupModal();
                 }, 300);
@@ -524,7 +572,7 @@ class RestaurantOrderSystem {
     
     // Google Sign In
     async signInWithGoogle() {
-        const button = document.getElementById('google-signin-btn');
+        const button = document.getElementById('google-login-btn');
         await this.withLoading(async () => {
             try {
                 const result = await this.auth.signInWithPopup(this.googleProvider);
@@ -549,10 +597,9 @@ class RestaurantOrderSystem {
                 this.businessData = null;
                 this.showNotification('Signed out successfully', 'info');
                 
-                // FIX: Use setTimeout to prevent modal stacking
-                setTimeout(() => {
-                    this.showAuthModal();
-                }, 300);
+                // Show login page
+                this.showLoginPage();
+                
             } catch (error) {
                 console.error('Error signing out:', error);
                 this.showNotification('Error signing out', 'error');
@@ -641,6 +688,12 @@ class RestaurantOrderSystem {
     
     // Initialize event listeners
     initEventListeners() {
+        // Google login button
+        document.getElementById('google-login-btn')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.signInWithGoogle();
+        });
+        
         // Customer info
         document.getElementById('customer-name')?.addEventListener('input', (e) => {
             this.currentOrder.customerName = e.target.value;
@@ -725,11 +778,6 @@ class RestaurantOrderSystem {
         
         // Auth and profile buttons
         document.addEventListener('click', (e) => {
-            if (e.target && e.target.id === 'google-signin-btn') {
-                e.preventDefault();
-                this.signInWithGoogle();
-            }
-            
             if (e.target && e.target.id === 'save-initial-profile-btn') {
                 e.preventDefault();
                 this.saveInitialProfile(e.target);
@@ -764,56 +812,19 @@ class RestaurantOrderSystem {
             this.previewImage(e.target, 'qr-code-preview');
         });
         
-        // FIX: QR Code modal close event
+        // QR Code modal close event - FIXED
         document.getElementById('qrCodeModal')?.addEventListener('hidden.bs.modal', () => {
-            // Clean up modal backdrop
-            const backdrops = document.querySelectorAll('.modal-backdrop');
-            backdrops.forEach(backdrop => backdrop.remove());
-            
-            // Remove modal-open class from body
-            document.body.classList.remove('modal-open');
-            document.body.style.paddingRight = '';
-            
-            // Remove any leftover modal divs
-            const leftoverModals = document.querySelectorAll('.modal');
-            leftoverModals.forEach(modal => {
-                if (modal.id !== 'qrCodeModal' && modal.parentNode) {
-                    modal.remove();
-                }
-            });
+            this.cleanupModalBackdrops();
         });
         
-        // FIX: Order details modal close event
+        // Order details modal close event
         document.getElementById('orderDetailsModal')?.addEventListener('hidden.bs.modal', () => {
-            // Clean up modal backdrop
-            const backdrops = document.querySelectorAll('.modal-backdrop');
-            backdrops.forEach(backdrop => backdrop.remove());
-            
-            // Remove modal-open class from body
-            document.body.classList.remove('modal-open');
-            document.body.style.paddingRight = '';
+            this.cleanupModalBackdrops();
         });
         
-        // FIX: Auth modal close event
-        document.getElementById('authModal')?.addEventListener('hidden.bs.modal', () => {
-            // Clean up modal backdrop
-            const backdrops = document.querySelectorAll('.modal-backdrop');
-            backdrops.forEach(backdrop => backdrop.remove());
-            
-            // Remove modal-open class from body
-            document.body.classList.remove('modal-open');
-            document.body.style.paddingRight = '';
-        });
-        
-        // FIX: Profile setup modal close event
+        // Profile setup modal close event
         document.getElementById('profileSetupModal')?.addEventListener('hidden.bs.modal', () => {
-            // Clean up modal backdrop
-            const backdrops = document.querySelectorAll('.modal-backdrop');
-            backdrops.forEach(backdrop => backdrop.remove());
-            
-            // Remove modal-open class from body
-            document.body.classList.remove('modal-open');
-            document.body.style.paddingRight = '';
+            this.cleanupModalBackdrops();
         });
     }
     
@@ -863,7 +874,7 @@ class RestaurantOrderSystem {
             if (index >= 6) return;
             
             const col = document.createElement('div');
-            col.className = 'col-6';
+            col.className = window.innerWidth <= 576 ? 'col-6' : 'col-6';
             
             // Get appropriate icon based on category name
             const icon = this.getCategoryIcon(category.name);
@@ -901,7 +912,7 @@ class RestaurantOrderSystem {
         return 'tag'; // default icon
     }
     
-    // Render menu items (filter out out-of-stock items)
+    // Render menu items (filter out out-of-stock items) - ENHANCED FOR MOBILE
     renderMenu(searchTerm = '') {
         const container = document.getElementById('menu-items-container');
         if (!container) return;
@@ -945,60 +956,107 @@ class RestaurantOrderSystem {
             
             if (filteredItems.length === 0 && searchTerm !== '') return;
             
-            const categoryDiv = document.createElement('div');
-            categoryDiv.className = 'menu-category';
-            categoryDiv.id = `category-${categoryName.replace(/\s+/g, '-')}`;
-            categoryDiv.innerHTML = `
-                <h6>${categoryName}</h6>
-                <div class="row" id="items-${categoryName.replace(/\s+/g, '-')}"></div>
-            `;
-            
-            const itemsContainer = categoryDiv.querySelector(`#items-${categoryName.replace(/\s+/g, '-')}`);
-            
-            filteredItems.forEach(item => {
-                const colSize = window.innerWidth <= 576 ? 'col-6' : 'col-md-4 col-lg-3';
-                const itemDiv = document.createElement('div');
-                itemDiv.className = `${colSize}`;
-                
-                // Check if item is in current order
-                const currentItem = this.currentOrder.items.find(i => i.id === item.id);
-                const quantity = currentItem ? currentItem.quantity : 0;
-                const isSelected = quantity > 0;
-                
-                itemDiv.innerHTML = `
-                    <div class="menu-item-card ${isSelected ? 'selected' : ''}" 
-                         data-item-id="${item.id}">
-                        <div>
-                            <div class="menu-item-name">${item.name}</div>
-                            <div class="menu-item-price">₹${item.price}${item.tax > 0 ? ` (+${item.tax}% tax)` : ''}</div>
-                        </div>
-                        <div class="menu-item-quantity">
-                            <button class="quantity-btn minus-btn" data-item-id="${item.id}">
-                                <i class="fas fa-minus"></i>
-                            </button>
-                            <input type="number" class="quantity-input" id="qty-${item.id}" 
-                                   value="${quantity}" min="0" data-item-id="${item.id}">
-                            <button class="quantity-btn plus-btn" data-item-id="${item.id}">
-                                <i class="fas fa-plus"></i>
-                            </button>
-                        </div>
-                    </div>
+            if (window.innerWidth > 576) {
+                // Desktop view with category headers
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'menu-category';
+                categoryDiv.id = `category-${categoryName.replace(/\s+/g, '-')}`;
+                categoryDiv.innerHTML = `
+                    <h6>${categoryName}</h6>
+                    <div class="row" id="items-${categoryName.replace(/\s+/g, '-')}"></div>
                 `;
                 
-                itemsContainer.appendChild(itemDiv);
+                const itemsContainer = categoryDiv.querySelector(`#items-${categoryName.replace(/\s+/g, '-')}`);
                 
-                // Add event listeners
-                const minusBtn = itemDiv.querySelector('.minus-btn');
-                const plusBtn = itemDiv.querySelector('.plus-btn');
-                const qtyInput = itemDiv.querySelector('.quantity-input');
+                filteredItems.forEach(item => {
+                    const colSize = 'col-md-4 col-lg-3';
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = `${colSize}`;
+                    
+                    // Check if item is in current order
+                    const currentItem = this.currentOrder.items.find(i => i.id === item.id);
+                    const quantity = currentItem ? currentItem.quantity : 0;
+                    const isSelected = quantity > 0;
+                    
+                    itemDiv.innerHTML = `
+                        <div class="menu-item-card ${isSelected ? 'selected' : ''}" 
+                             data-item-id="${item.id}">
+                            <div>
+                                <div class="menu-item-name">${item.name}</div>
+                                <div class="menu-item-price">₹${item.price}${item.tax > 0 ? ` (+${item.tax}% tax)` : ''}</div>
+                            </div>
+                            <div class="menu-item-quantity">
+                                <button class="quantity-btn minus-btn" data-item-id="${item.id}">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <input type="number" class="quantity-input" id="qty-${item.id}" 
+                                       value="${quantity}" min="0" data-item-id="${item.id}">
+                                <button class="quantity-btn plus-btn" data-item-id="${item.id}">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    itemsContainer.appendChild(itemDiv);
+                    
+                    // Add event listeners
+                    const minusBtn = itemDiv.querySelector('.minus-btn');
+                    const plusBtn = itemDiv.querySelector('.plus-btn');
+                    const qtyInput = itemDiv.querySelector('.quantity-input');
+                    
+                    minusBtn.addEventListener('click', () => this.adjustQuantity(item.id, -1));
+                    plusBtn.addEventListener('click', () => this.adjustQuantity(item.id, 1));
+                    qtyInput.addEventListener('change', (e) => this.setQuantity(item.id, parseInt(e.target.value) || 0));
+                    qtyInput.addEventListener('input', (e) => this.setQuantity(item.id, parseInt(e.target.value) || 0));
+                });
                 
-                minusBtn.addEventListener('click', () => this.adjustQuantity(item.id, -1));
-                plusBtn.addEventListener('click', () => this.adjustQuantity(item.id, 1));
-                qtyInput.addEventListener('change', (e) => this.setQuantity(item.id, parseInt(e.target.value) || 0));
-                qtyInput.addEventListener('input', (e) => this.setQuantity(item.id, parseInt(e.target.value) || 0));
-            });
-            
-            container.appendChild(categoryDiv);
+                container.appendChild(categoryDiv);
+            } else {
+                // Mobile view - grid layout without category headers
+                filteredItems.forEach(item => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'col-6';
+                    
+                    // Check if item is in current order
+                    const currentItem = this.currentOrder.items.find(i => i.id === item.id);
+                    const quantity = currentItem ? currentItem.quantity : 0;
+                    const isSelected = quantity > 0;
+                    
+                    itemDiv.innerHTML = `
+                        <div class="menu-item-card ${isSelected ? 'selected' : ''}" 
+                             data-item-id="${item.id}">
+                            <div>
+                                <div class="menu-item-name">${item.name}</div>
+                                <div class="menu-item-category small text-muted">${categoryName}</div>
+                                <div class="menu-item-price">₹${item.price}</div>
+                            </div>
+                            <div class="menu-item-quantity">
+                                <button class="quantity-btn minus-btn" data-item-id="${item.id}">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <input type="number" class="quantity-input" id="qty-${item.id}" 
+                                       value="${quantity}" min="0" data-item-id="${item.id}">
+                                <button class="quantity-btn plus-btn" data-item-id="${item.id}">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    container.appendChild(itemDiv);
+                    
+                    // Add event listeners
+                    const minusBtn = itemDiv.querySelector('.minus-btn');
+                    const plusBtn = itemDiv.querySelector('.plus-btn');
+                    const qtyInput = itemDiv.querySelector('.quantity-input');
+                    
+                    minusBtn.addEventListener('click', () => this.adjustQuantity(item.id, -1));
+                    plusBtn.addEventListener('click', () => this.adjustQuantity(item.id, 1));
+                    qtyInput.addEventListener('change', (e) => this.setQuantity(item.id, parseInt(e.target.value) || 0));
+                    qtyInput.addEventListener('input', (e) => this.setQuantity(item.id, parseInt(e.target.value) || 0));
+                });
+            }
         });
     }
     
@@ -1069,6 +1127,7 @@ class RestaurantOrderSystem {
         
         // Update UI
         this.updateSelectedItemsTable();
+        this.updateSelectedItemsMobile();
         this.updateSummary();
         
         // Update menu item card
@@ -1086,7 +1145,7 @@ class RestaurantOrderSystem {
         }
     }
     
-    // Update selected items table with tax information - FIXED
+    // Update selected items table with tax information - ENHANCED FOR MOBILE
     updateSelectedItemsTable() {
         const tbody = document.getElementById('selected-items-body');
         if (!tbody) return;
@@ -1170,6 +1229,74 @@ class RestaurantOrderSystem {
                 <td></td>
             </tr>
         `;
+    }
+    
+    // Update selected items for mobile view
+    updateSelectedItemsMobile() {
+        const container = document.getElementById('selected-items-mobile');
+        const countElement = document.getElementById('selected-count');
+        
+        if (!container) return;
+        
+        if (this.currentOrder.items.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-muted py-4">
+                    No items selected
+                </div>
+            `;
+            if (countElement) countElement.textContent = '0 items';
+            return;
+        }
+        
+        let html = '';
+        let total = 0;
+        
+        this.currentOrder.items.forEach((item) => {
+            total += item.total;
+            
+            html += `
+                <div class="selected-item-mobile">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-bold">${item.name}</div>
+                            <div class="small text-muted">₹${item.price} x ${item.quantity}</div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="text-end">
+                                <div class="fw-bold">₹${item.total.toFixed(2)}</div>
+                                ${item.tax > 0 ? `<div class="small text-muted">${item.tax}% tax</div>` : ''}
+                            </div>
+                            <button class="btn btn-sm btn-danger" onclick="restaurantSystem.setQuantity('${item.id}', 0)">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-center gap-2 mt-2">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="restaurantSystem.adjustQuantity('${item.id}', -1)">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <input type="number" class="form-control text-center" style="width: 60px;" 
+                               value="${item.quantity}" min="1" 
+                               onchange="restaurantSystem.setQuantity('${item.id}', this.value)">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="restaurantSystem.adjustQuantity('${item.id}', 1)">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <hr class="my-2">
+                </div>
+            `;
+        });
+        
+        // Add total
+        html += `
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <div class="fw-bold">Total:</div>
+                <div class="h5 text-success">₹${total.toFixed(2)}</div>
+            </div>
+        `;
+        
+        container.innerHTML = html;
+        if (countElement) countElement.textContent = `${this.currentOrder.items.length} items`;
     }
     
     // Update order summary with tax
@@ -1292,9 +1419,13 @@ class RestaurantOrderSystem {
     updateBadges() {
         const ongoingBadge = document.getElementById('ongoing-badge');
         const completedBadge = document.getElementById('completed-badge');
+        const mobileOngoingBadge = document.getElementById('mobile-ongoing-badge');
+        const mobileCompletedBadge = document.getElementById('mobile-completed-badge');
         
         if (ongoingBadge) ongoingBadge.textContent = this.orders.length;
         if (completedBadge) completedBadge.textContent = this.completedOrders.length;
+        if (mobileOngoingBadge) mobileOngoingBadge.textContent = this.orders.length;
+        if (mobileCompletedBadge) mobileCompletedBadge.textContent = this.completedOrders.length;
     }
     
     // Update next order number
@@ -1396,6 +1527,7 @@ class RestaurantOrderSystem {
                 
                 // Switch to ongoing orders tab
                 this.switchTab('ongoing-orders');
+                this.updateMobileNav('ongoing-orders');
                 
             } catch (error) {
                 console.error('Error placing order:', error);
@@ -1404,7 +1536,7 @@ class RestaurantOrderSystem {
         }, 'Placing order...', button);
     }
     
-    // Clear current order - FIXED
+    // Clear current order - ENHANCED FOR MOBILE
     clearCurrentOrder() {
         this.currentOrder = {
             items: [],
@@ -1437,6 +1569,7 @@ class RestaurantOrderSystem {
         
         // Update UI
         this.updateSelectedItemsTable();
+        this.updateSelectedItemsMobile();
         this.updateSummary();
         
         this.showNotification('Order cleared successfully', 'success');
@@ -1452,20 +1585,24 @@ class RestaurantOrderSystem {
     
     // ================= ONGOING ORDERS =================
     
-    // Render ongoing orders - FIXED VIEW BUTTON
+    // Render ongoing orders - ENHANCED FOR MOBILE
     renderOngoingOrders() {
         const tbody = document.getElementById('ongoing-orders-body');
+        const mobileContainer = document.getElementById('ongoing-orders-mobile');
         const emptyState = document.getElementById('no-ongoing-orders');
         
         if (!tbody || !emptyState) return;
         
         if (this.orders.length === 0) {
             tbody.innerHTML = '';
+            if (mobileContainer) mobileContainer.innerHTML = '';
             emptyState.style.display = 'block';
             return;
         }
         
         emptyState.style.display = 'none';
+        
+        // Desktop table view
         let html = '';
         
         this.orders.forEach(order => {
@@ -1507,6 +1644,80 @@ class RestaurantOrderSystem {
         
         tbody.innerHTML = html;
         
+        // Mobile card view
+        if (mobileContainer) {
+            let mobileHtml = '';
+            
+            this.orders.forEach(order => {
+                const orderTime = new Date(order.orderTime);
+                const itemsCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
+                const total = order.total ? order.total.toFixed(2) : order.total;
+                
+                mobileHtml += `
+                    <div class="mobile-order-card">
+                        <div class="mobile-order-header">
+                            <div>
+                                <strong>Order #${order.orderNumber || order.id}</strong>
+                                <div class="small">${orderTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                            </div>
+                            <span class="status-badge status-${order.status}">
+                                ${order.status}
+                            </span>
+                        </div>
+                        <div class="mobile-order-body">
+                            <div class="mobile-order-info">
+                                <div>
+                                    <div class="small text-muted">Customer</div>
+                                    <div>${order.customerName || 'Walk-in'}</div>
+                                </div>
+                                <div>
+                                    <div class="small text-muted">Items</div>
+                                    <div>${itemsCount} items</div>
+                                </div>
+                                <div>
+                                    <div class="small text-muted">Type</div>
+                                    <div>${order.orderType}</div>
+                                </div>
+                                <div>
+                                    <div class="small text-muted">Total</div>
+                                    <div class="fw-bold">₹${total}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="mobile-order-items">
+                                <div class="small text-muted mb-2">Items:</div>
+                                ${order.items.slice(0, 3).map(item => `
+                                    <div class="mobile-order-item">
+                                        <span>${item.name} x${item.quantity}</span>
+                                        <span>₹${item.total ? item.total.toFixed(2) : (item.price * item.quantity).toFixed(2)}</span>
+                                    </div>
+                                `).join('')}
+                                ${order.items.length > 3 ? `
+                                    <div class="text-center small text-muted mt-2">
+                                        +${order.items.length - 3} more items
+                                    </div>
+                                ` : ''}
+                            </div>
+                            
+                            <div class="mobile-order-actions">
+                                <button class="btn btn-sm btn-outline-primary view-order-btn" data-order-id="${order.id}">
+                                    <i class="fas fa-eye me-1"></i> View
+                                </button>
+                                <button class="btn btn-sm btn-success complete-order-btn" data-order-id="${order.id}">
+                                    <i class="fas fa-check me-1"></i> Complete
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger delete-order-btn" data-order-id="${order.id}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            mobileContainer.innerHTML = mobileHtml;
+        }
+        
         // Add event listeners with loading
         document.querySelectorAll('.view-order-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -1530,7 +1741,7 @@ class RestaurantOrderSystem {
         });
     }
     
-    // View order details - FIXED
+    // View order details
     viewOrderDetails(orderId) {
         const order = this.orders.find(o => o.id == orderId) || 
                      this.completedOrders.find(o => o.id == orderId);
@@ -1783,9 +1994,10 @@ class RestaurantOrderSystem {
         return filteredOrders;
     }
     
-    // Render completed orders with date range filter
+    // Render completed orders with date range filter - ENHANCED FOR MOBILE
     renderCompletedOrders() {
         const tbody = document.getElementById('completed-orders-body');
+        const mobileContainer = document.getElementById('completed-orders-mobile');
         const emptyState = document.getElementById('no-completed-orders');
         
         if (!tbody || !emptyState) return;
@@ -1794,12 +2006,15 @@ class RestaurantOrderSystem {
         
         if (filteredOrders.length === 0) {
             tbody.innerHTML = '';
+            if (mobileContainer) mobileContainer.innerHTML = '';
             emptyState.style.display = 'block';
             this.updateSalesSummary(filteredOrders);
             return;
         }
         
         emptyState.style.display = 'none';
+        
+        // Desktop table view
         let html = '';
         
         filteredOrders.forEach(order => {
@@ -1823,6 +2038,57 @@ class RestaurantOrderSystem {
         });
         
         tbody.innerHTML = html;
+        
+        // Mobile card view
+        if (mobileContainer) {
+            let mobileHtml = '';
+            
+            filteredOrders.forEach(order => {
+                const orderTime = new Date(order.orderTime);
+                const completedTime = new Date(order.completedTime);
+                const itemsCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
+                const profit = order.totalProfit || (order.total - (order.totalCost || 0));
+                const profitClass = profit >= 0 ? 'profit-positive' : 'profit-negative';
+                
+                mobileHtml += `
+                    <div class="mobile-order-card">
+                        <div class="mobile-order-header">
+                            <div>
+                                <strong>Order #${order.orderNumber || order.id}</strong>
+                                <div class="small">${orderTime.toLocaleDateString()}</div>
+                            </div>
+                            <span class="badge bg-success">Completed</span>
+                        </div>
+                        <div class="mobile-order-body">
+                            <div class="mobile-order-info">
+                                <div>
+                                    <div class="small text-muted">Customer</div>
+                                    <div>${order.customerName || 'Walk-in'}</div>
+                                </div>
+                                <div>
+                                    <div class="small text-muted">Items</div>
+                                    <div>${itemsCount} items</div>
+                                </div>
+                                <div>
+                                    <div class="small text-muted">Total</div>
+                                    <div class="fw-bold">₹${order.total ? order.total.toFixed(2) : order.total}</div>
+                                </div>
+                                <div>
+                                    <div class="small text-muted">Profit</div>
+                                    <div class="${profitClass} fw-bold">₹${profit.toFixed(2)}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="small text-muted mt-3">
+                                Completed: ${completedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            mobileContainer.innerHTML = mobileHtml;
+        }
         
         // Update sales summary with filtered orders
         this.updateSalesSummary(filteredOrders);
@@ -2048,7 +2314,7 @@ class RestaurantOrderSystem {
         }
     }
     
-    // ================= MENU MANAGEMENT METHODS =================
+    // ================= MENU MANAGEMENT =================
     
     // Render menu management table
     renderMenuManagement() {
@@ -2687,57 +2953,20 @@ class RestaurantOrderSystem {
     
     // ================= AUTH MODALS =================
     
-    // Show authentication modal
-    showAuthModal() {
-        // FIX: Clear any existing modal backdrops first
-        const existingBackdrops = document.querySelectorAll('.modal-backdrop');
-        existingBackdrops.forEach(backdrop => backdrop.remove());
-        
-        // Remove modal-open class
-        document.body.classList.remove('modal-open');
-        document.body.style.paddingRight = '';
-        
-        const modalElement = document.getElementById('authModal');
-        const modal = new bootstrap.Modal(modalElement, {
-            backdrop: 'static',
-            keyboard: false
-        });
-        modal.show();
-    }
-    
-    // Hide authentication modal
-    hideAuthModal() {
-        const modalElement = document.getElementById('authModal');
-        const modal = bootstrap.Modal.getInstance(modalElement);
-        if (modal) {
-            modal.hide();
-            
-            // FIX: Clean up after modal is hidden
-            setTimeout(() => {
-                const backdrops = document.querySelectorAll('.modal-backdrop');
-                backdrops.forEach(backdrop => backdrop.remove());
-                
-                document.body.classList.remove('modal-open');
-                document.body.style.paddingRight = '';
-            }, 300);
-        }
-    }
-    
     // Show profile setup modal
     showProfileSetupModal() {
-        // FIX: Clear any existing modal backdrops first
-        const existingBackdrops = document.querySelectorAll('.modal-backdrop');
-        existingBackdrops.forEach(backdrop => backdrop.remove());
-        
-        // Remove modal-open class
-        document.body.classList.remove('modal-open');
-        document.body.style.paddingRight = '';
+        this.cleanupModalBackdrops();
         
         const modalElement = document.getElementById('profileSetupModal');
         const modal = new bootstrap.Modal(modalElement, {
             backdrop: 'static',
             keyboard: false
         });
+        
+        modalElement.addEventListener('hidden.bs.modal', () => {
+            this.cleanupModalBackdrops();
+        });
+        
         modal.show();
     }
     
@@ -2747,15 +2976,6 @@ class RestaurantOrderSystem {
         const modal = bootstrap.Modal.getInstance(modalElement);
         if (modal) {
             modal.hide();
-            
-            // FIX: Clean up after modal is hidden
-            setTimeout(() => {
-                const backdrops = document.querySelectorAll('.modal-backdrop');
-                backdrops.forEach(backdrop => backdrop.remove());
-                
-                document.body.classList.remove('modal-open');
-                document.body.style.paddingRight = '';
-            }, 300);
         }
     }
     
@@ -2909,7 +3129,7 @@ class RestaurantOrderSystem {
             qrCodeSection.style.display = 'block';
             profileQrCode.src = this.businessData.qrCodeUrl;
             
-            // FIX: Add click event directly to the image
+            // Add click event for QR code
             profileQrCode.onclick = () => this.showQRCode();
         } else {
             qrCodeSection.style.display = 'none';
@@ -3129,9 +3349,6 @@ class RestaurantOrderSystem {
                 }
             });
         }
-        
-        // Note: Other charts can be implemented similarly
-        // For now, we'll just show a basic chart
     }
     
     // ================= INITIALIZE =================
